@@ -81,3 +81,30 @@ def test_context_only_lists_sources_that_fit_and_marks_archived(retriever, cfg):
 
 def test_tokenizer_matches_simple_plurals():
     assert tokenize("Holidays in January") == tokenize("holiday in january")
+
+
+def test_bullet_list_chunk_is_not_cut_down_in_the_prompt(chunks, cfg):
+    """Regression: the Data Scientist skills, tools and stages must all reach the LLM."""
+    ds = [c for c in chunks if c.metadata["file_name"] == "job_descriptions.docx"
+          and c.metadata["section_title"] == "Data Scientist"]
+    context, _, _ = build_context("required skills preferred tools selection stages", ds, cfg)
+    for needle in ("Power BI", "Statistics", "scikit-learn", "Jupyter", "Background Verification"):
+        assert needle in context
+
+
+def test_split_subqueries():
+    from hr_rag.retrieval import split_subqueries
+    q = "how many leaves can a person take in 2 months , how to apply for a maternity leave"
+    assert split_subqueries(q) == ["how many leaves can a person take in 2 months",
+                                   "how to apply for a maternity leave"]
+    assert split_subqueries("What are the office timings for a new employee?") == []
+    two = "Compare Version 1.0 with Version 2.0. Identify every change in annual leave."
+    assert len(split_subqueries(two)) == 2
+    assert split_subqueries("annual leave, casual leave, sick leave and carry forward rules") == []
+
+
+def test_each_part_of_a_multi_part_question_is_searched(retriever):
+    res = retriever.retrieve(process_query("annual leave days"), allowed_levels_for("employee"),
+                             sub_queries=[process_query("which holidays are in January")])
+    assert len(res["queries"]) == 2
+    assert any(d.metadata["file_name"] == "holiday_calendar.xlsx" for d in res["fused"])

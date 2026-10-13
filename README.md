@@ -78,7 +78,6 @@ hr-rag/
 ├── ingest.py             command: build the index
 ├── ask.py                command: ask questions
 ├── tests/                69 offline tests (no models, no API calls):  python -m pytest
-├── notebooks/            your original notebooks, kept for reference
 ├── chroma_db/            generated index (git-ignored)
 └── logs/                 ingestion report, query log, feedback (git-ignored)
 ```

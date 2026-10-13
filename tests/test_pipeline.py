@@ -41,9 +41,9 @@ def test_same_question_as_hr_does_reach_confidential_text(pipeline):
 
 def test_citation_to_missing_source_is_flagged(store, embeddings, fake_reranker, cfg):
     p = RAGPipeline(cfg, embeddings=embeddings, vector_store=store, reranker=fake_reranker,
-                    llm=lambda s, u: "Twenty days [S9].")
+                    llm=lambda s, u: "Twenty days [S99].")
     r = p.ask("annual leave days", {"role": "employee"})
-    assert r["citations_valid"] is False and r["invalid_citation_ids"] == ["S9"]
+    assert r["citations_valid"] is False and r["invalid_citation_ids"] == ["S99"]
     assert r["evaluation"]["citations_valid"] is False
 
 
@@ -134,3 +134,16 @@ def test_reasoning_notes_are_never_shown_as_the_answer(monkeypatch):
     monkeypatch.setattr("openai.OpenAI", _nvidia_client("half an ans", finish_reason="length"))
     with pytest.raises(g.LLMError, match="finish_reason=length"):
         g.generate_answer("s", "u", cfg)
+
+
+def test_invented_numbers_are_flagged(store, embeddings, fake_reranker, cfg):
+    from hr_rag.evaluation import ungrounded_numbers
+    p = RAGPipeline(cfg, embeddings=embeddings, vector_store=store, reranker=fake_reranker,
+                    llm=lambda s, u: "Maternity leave is 26 weeks [S1].")
+    r = p.ask("how long is maternity leave", {"role": "employee"}, log=False)
+    assert r["evaluation"]["numbers_grounded"] is False
+    assert "26" in r["evaluation"]["ungrounded_numbers"]
+    ctx = "Employees may carry forward up to 10 unused days. Apply five working days in advance."
+    assert ungrounded_numbers("Carry forward 10 days; apply 5 days ahead [S1].", ctx) == []
+    assert ungrounded_numbers("You asked for 12 days [S1].", ctx, "can I take 12 days") == []
+    assert ungrounded_numbers("1. Total is 40 days.", ctx) == ["40"]
