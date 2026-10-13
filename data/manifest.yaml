@@ -1,0 +1,97 @@
+# Describes every document in data/raw/.
+#
+# Why this file exists: the files themselves do not say who may read them or
+# whether they are still valid. This manifest is where that is decided, so you
+# can change access rules or retire a policy WITHOUT touching any code.
+#
+# Fields per file (all optional except where noted):
+#   title           human-friendly name shown in citations
+#   document_type   free label used for filtering / tags
+#   access_level    public | internal | confidential | restricted
+#   is_current      false = archived/superseded (hidden from normal searches)
+#   version_number  number, for policies that have several versions
+#   policy_family   groups versions of the same policy together
+#   exclude         true = do not index at all (give a reason)
+#   keep_if_invalid true = index even if validation fails (marked as invalid)
+defaults:
+  department: Human Resources
+  access_level: internal
+  is_current: true
+  version_number: 1
+
+files:
+  Employee_Handbook.pdf:
+    title: Employee Handbook
+    document_type: employee_handbook
+
+  Attendance_Policy.pdf:
+    title: Attendance Policy
+    document_type: attendance_policy
+
+  Onboarding_Guide.pdf:
+    title: Employee Onboarding Guide
+    document_type: onboarding_guide
+
+  work_from_home_policy.txt:
+    title: Work-From-Home Policy
+    document_type: wfh_policy
+
+  leave_policy_v1.docx:
+    title: Leave Policy v1.0 (Archived)
+    document_type: leave_policy
+    policy_family: leave_policy
+    version_number: 1
+    is_current: false
+
+  leave_policy_v2.docx:
+    title: Leave Policy v2.0
+    document_type: leave_policy
+    policy_family: leave_policy
+    version_number: 2
+    is_current: true
+
+  duplicate_leave_policy.docx:
+    title: Leave Policy v1.0 (Duplicate Copy)
+    document_type: leave_policy
+    exclude: true
+    reason: Intentional duplicate of leave_policy_v1.docx
+
+  onboarding_checklist.docx:
+    title: Employee Onboarding Checklist
+    document_type: onboarding_checklist
+
+  job_descriptions.docx:
+    title: Job Descriptions
+    document_type: job_descriptions
+
+  holiday_calendar.xlsx:
+    title: Company Holiday Calendar 2025
+    document_type: holiday_calendar
+
+  department_details.xlsx:
+    title: Department Details
+    document_type: department_details
+
+  hr_announcement.html:
+    title: HR Announcement
+    document_type: hr_announcement
+
+  # People data: names/emails/phones are fine for staff, but profiles hold dates
+  # of birth, home addresses and emergency contacts -> HR only.
+  employee_directory.csv:
+    title: Employee Directory
+    document_type: employee_directory
+    access_level: internal
+
+  employee_profiles.json:
+    title: Employee Profiles
+    document_type: employee_profile
+    access_level: confidential
+
+  incomplete_employee_record.json:
+    title: Incomplete Employee Record (validation example)
+    document_type: employee_profile
+    access_level: confidential
+    # Fails validation (no employee ID) but is meant to be asked about, so keep it
+    # searchable, marked validation_status=invalid. HR role only (confidential).
+    keep_if_invalid: true

@@ -1,0 +1,72 @@
+Artificial Penetration Software Solutions Pvt. Ltd.
+
+Human Resources Department
+
+WORK-FROM-HOME POLICY Version: 1.0 Effective Date: 01 January 2025
+Classification: Internal Use Only
+
+1.  PURPOSE This Work-from-Home (WFH) Policy defines the guidelines for
+    employees who are approved to work remotely. The objective is to
+    maintain productivity, collaboration, information security, and
+    business continuity while providing workplace flexibility.
+
+2.  SCOPE This policy applies to permanent, probationary, and contract
+    employees whose roles are approved for remote work by their
+    Reporting Manager and Human Resources.
+
+3.  ELIGIBILITY
+
+-   Remote work is not an automatic employee benefit.
+-   Approval depends on business requirements.
+-   Employees must have a stable internet connection and an approved
+    work environment.
+
+4.  WORKING HOURS Employees must follow the standard office schedule
+    unless otherwise approved.
+
+-   Office Hours: 9:30 AM – 6:30 PM
+-   Lunch Break: 1 Hour
+-   Employees should be available during core business hours.
+
+5.  ATTENDANCE Employees must:
+
+-   Mark attendance through the HR Attendance System.
+-   Join daily stand-up meetings.
+-   Inform the Reporting Manager before taking leave.
+-   Respond to official communication within a reasonable time.
+
+6.  PRODUCTIVITY EXPECTATIONS Employees are expected to:
+
+-   Complete assigned work within deadlines.
+-   Attend scheduled meetings.
+-   Maintain regular communication with the team.
+-   Update task progress in the project management system.
+
+7.  INFORMATION SECURITY
+
+-   Use only company-approved devices whenever possible.
+-   Do not share confidential company information.
+-   Lock the computer when away from the workstation.
+-   Store official documents only in approved repositories.
+-   Report security incidents immediately.
+
+8.  COMMUNICATION Communication channels include company email,
+    Microsoft Teams/Slack, video meetings, and the approved project
+    management platform. Employees should keep their status updated
+    during working hours.
+
+9.  EQUIPMENT Employees are responsible for protecting company-issued
+    laptops, chargers, and accessories. Damage or loss must be reported
+    immediately.
+
+10. POLICY VIOLATIONS Examples include:
+
+-   Falsifying attendance.
+-   Sharing confidential information.
+-   Repeated unavailability during working hours.
+-   Failure to complete assigned work without valid reasons.
+
+11. REVISION HISTORY Version 1.0 - Initial Work-from-Home Policy
+    Release.
+
+End of Document

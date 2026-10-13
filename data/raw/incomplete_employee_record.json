@@ -1,0 +1,65 @@
+{
+    "company": "Artificial Penetration Software Solutions Pvt. Ltd.",
+    "dataset_type": "Synthetic HR Validation Example",
+    "record_status": "Incomplete",
+    "employee_record": {
+        "employee_id": "",
+        "personal_details": {
+            "full_name": "Rahul Sharma",
+            "gender": null,
+            "date_of_birth": "1995-31-12",
+            "marital_status": ""
+        },
+        "contact_details": {
+            "official_email": "rahul.sharma-at-apss.example",
+            "personal_email": "",
+            "phone_number": "98765",
+            "address": {
+                "street": "",
+                "city": "Hyderabad",
+                "state": null,
+                "postal_code": "50A081",
+                "country": "India"
+            }
+        },
+        "employment_details": {
+            "department": null,
+            "designation": "",
+            "employment_type": "Permanent",
+            "date_of_joining": "2025-15-01",
+            "work_location": "",
+            "employment_status": "Unknown",
+            "reporting_manager": {
+                "name": "",
+                "designation": null
+            }
+        },
+        "skills": [],
+        "emergency_contact": {
+            "name": "",
+            "relationship": "",
+            "phone_number": null
+        }
+    },
+    "expected_validation_errors": [
+        "employee_id is required",
+        "gender is required",
+        "date_of_birth has invalid date format",
+        "official_email has invalid email format",
+        "phone_number is too short",
+        "street is required",
+        "state is required",
+        "postal_code must contain only digits",
+        "department is required",
+        "designation is required",
+        "date_of_joining has invalid date format",
+        "work_location is required",
+        "employment_status contains an unsupported value",
+        "reporting_manager.name is required",
+        "reporting_manager.designation is required",
+        "skills must contain at least one value",
+        "emergency_contact.name is required",
+        "emergency_contact.relationship is required",
+        "emergency_contact.phone_number is required"
+    ]
+}
