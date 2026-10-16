@@ -43,11 +43,28 @@ python ask.py --include-archived   # also search old policy versions (e.g. Leave
 python ask.py -q "How many casual leave days do I get?"
 ```
 
+### Web UI (Streamlit)
+
+```bash
+pip install -r requirements.txt   # adds streamlit
+streamlit run app.py
+```
+
+Pages: **Assistant** (chat with cited-source cards, 👍/👎 feedback, role and archived-policy controls, concise/detailed
+style under Settings), **Model Evaluation** (real numbers from `logs/query_log.jsonl` only) and **About**. The role is a
+dropdown and is simulated, not a login. The models load once when the app starts, so questions after the first skip the
+model-loading time you see with `ask.py`. Conversations live in the browser session only.
+
 The first `ingest.py` / `ask.py` run downloads two models from Hugging Face (embeddings ~90 MB,
 reranker ~1 GB). After that it works offline except for the LLM call.
 
 `python ingest.py --dry-run` checks your data (loading, validation, duplicates, chunk count) without
 downloading any model.
+
+**Answer length.** The default style is `concise`: short, plain-language answers (about 120 words or less unless the
+question needs a list or comparison). After every answer `ask.py` prints a `[usage]` line with input/output tokens,
+number of sources and time. Simple questions send 6 source chunks to the model; multi-part, "list all" and
+"compare" questions send up to 12.
 
 **Flags go on the command line, not inside the question.** Typing "Run with: python ask.py --role hr" into the
 question does nothing. Start the program that way instead (`python ask.py --role hr`). Each question's role is saved in
@@ -74,10 +91,13 @@ hr-rag/
 │   ├── generation.py     prompts + Claude / NVIDIA provider layer
 │   ├── guardrails.py     access + citation checks
 │   ├── evaluation.py     grounding scores, feedback, improvement hints
+│   ├── ui_data.py        log reading, summaries and safe error messages for the UI
 │   └── pipeline.py       RAGPipeline.ask(): ties query time together
 ├── ingest.py             command: build the index
 ├── ask.py                command: ask questions
-├── tests/                69 offline tests (no models, no API calls):  python -m pytest
+├── app.py                Streamlit web UI:  streamlit run app.py
+├── tests/                88 offline tests (no models, no API calls):  python -m pytest
+├── notebooks/            your original notebooks, kept for reference
 ├── chroma_db/            generated index (git-ignored)
 └── logs/                 ingestion report, query log, feedback (git-ignored)
 ```

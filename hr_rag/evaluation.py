@@ -134,6 +134,12 @@ def log_query(response: dict, cfg: Settings = default_settings) -> None:
         "status": response["status"],
         "source_chunk_ids": [s["chunk_id"] for s in response["sources"]],
         "evaluation_score": response["evaluation"]["evaluation_score"] if response["evaluation"] else None,
+        "style": response.get("style"),
+        "usage": response.get("usage"),
+        "timings": response.get("timings"),
+        # Per-check pass/fail, so the Model Evaluation page can show real pass rates.
+        "checks": ({k: v for k, v in response["evaluation"].items() if isinstance(v, bool)}
+                   if response["evaluation"] else None),
     })
 
 

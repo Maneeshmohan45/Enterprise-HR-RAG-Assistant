@@ -22,3 +22,6 @@ PyYAML
 
 # Tests
 pytest
+
+# Web UI
+streamlit>=1.40

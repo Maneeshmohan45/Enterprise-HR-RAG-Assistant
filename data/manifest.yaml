@@ -13,9 +13,21 @@
 #   policy_family   groups versions of the same policy together
 #   exclude         true = do not index at all (give a reason)
 #   keep_if_invalid true = index even if validation fails (marked as invalid)
+#
+# ACCESS POLICY (enforced at retrieval time, before anything reaches the LLM):
+#   internal      general company/HR information that any employee may ask about
+#                 (policies, handbook, onboarding, holidays, announcements, job descriptions)
+#                 -> roles: employee (and manager), hr, admin
+#   confidential  employee-specific or organisational data: profiles, records, the
+#                 employee directory, department details
+#                 -> roles: hr, admin only
+# Every file below states its access_level explicitly. If a file is ever listed here
+# WITHOUT one, it falls back to the default below, which is deliberately the strictest
+# level (fail closed). Files not listed here at all are also treated as confidential.
+# After editing this file, rebuild the index:  python ingest.py
 defaults:
   department: Human Resources
-  access_level: internal
+  access_level: confidential   # fail closed: unclassified = HR only
   is_current: true
   version_number: 1
 
@@ -23,23 +35,28 @@ files:
   Employee_Handbook.pdf:
     title: Employee Handbook
     document_type: employee_handbook
+    access_level: internal
 
   Attendance_Policy.pdf:
     title: Attendance Policy
     document_type: attendance_policy
+    access_level: internal
 
   Onboarding_Guide.pdf:
     title: Employee Onboarding Guide
     document_type: onboarding_guide
+    access_level: internal
 
   work_from_home_policy.txt:
     title: Work-From-Home Policy
     document_type: wfh_policy
+    access_level: internal
 
   leave_policy_v1.docx:
     title: Leave Policy v1.0 (Archived)
     document_type: leave_policy
     policy_family: leave_policy
+    access_level: internal
     version_number: 1
     is_current: false
 
@@ -47,41 +64,48 @@ files:
     title: Leave Policy v2.0
     document_type: leave_policy
     policy_family: leave_policy
+    access_level: internal
     version_number: 2
     is_current: true
 
   duplicate_leave_policy.docx:
     title: Leave Policy v1.0 (Duplicate Copy)
     document_type: leave_policy
+    access_level: internal
     exclude: true
     reason: Intentional duplicate of leave_policy_v1.docx
 
   onboarding_checklist.docx:
     title: Employee Onboarding Checklist
     document_type: onboarding_checklist
+    access_level: internal
 
   job_descriptions.docx:
     title: Job Descriptions
     document_type: job_descriptions
+    access_level: internal
 
   holiday_calendar.xlsx:
     title: Company Holiday Calendar 2025
     document_type: holiday_calendar
+    access_level: internal
 
   department_details.xlsx:
     title: Department Details
     document_type: department_details
+    access_level: confidential   # department heads, headcounts, contact details: HR only
 
   hr_announcement.html:
     title: HR Announcement
     document_type: hr_announcement
+    access_level: internal
 
-  # People data: names/emails/phones are fine for staff, but profiles hold dates
-  # of birth, home addresses and emergency contacts -> HR only.
+  # People data -> HR only. The directory lists every employee's name, email and
+  # phone, and profiles hold dates of birth, home addresses and emergency contacts.
   employee_directory.csv:
     title: Employee Directory
     document_type: employee_directory
-    access_level: internal
+    access_level: confidential
 
   employee_profiles.json:
     title: Employee Profiles

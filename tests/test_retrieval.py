@@ -42,7 +42,8 @@ def test_current_leave_policy_is_found(retriever):
 
 
 def test_keyword_search_finds_exact_employee_id(retriever):
-    res = retriever.retrieve(process_query("APS007"), allowed_levels_for("employee"))
+    # The directory is HR-only, so this keyword-search test runs as HR.
+    res = retriever.retrieve(process_query("APS007"), allowed_levels_for("hr"))
     assert any(d.metadata.get("employee_id") == "APS007" for d in res["keyword"])
 
 

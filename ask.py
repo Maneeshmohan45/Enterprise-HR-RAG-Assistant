@@ -27,6 +27,14 @@ def show_evaluation(report: dict | None) -> None:
               + ", ".join(report["ungrounded_numbers"]))
 
 
+def show_usage(response: dict) -> None:
+    usage, timings = response.get("usage") or {}, response.get("timings") or {}
+    if usage:
+        mark = "~" if usage.get("estimated") else ""
+        print(f"[usage] {response['style']} | tokens in {mark}{usage['input_tokens']:,} / out {mark}{usage['output_tokens']:,}"
+              f" | {usage['context_chunks']} sources | {timings.get('total_s', 0):.1f}s")
+
+
 def collect_feedback(response: dict) -> None:
     try:
         rating = int(input("Rate the answer 1-5 (Enter to skip): ") or 0)
@@ -45,6 +53,8 @@ def main() -> int:
     parser.add_argument("-q", "--question", help="Ask one question and exit.")
     parser.add_argument("--role", default="employee", choices=sorted(ROLE_ACCESS))
     parser.add_argument("--include-archived", action="store_true")
+    parser.add_argument("--style", choices=["concise", "detailed"], default=settings.answer_style,
+                        help="concise = short, simple answers (default); detailed = fuller answers.")
     parser.add_argument("--feedback", action="store_true", help="Ask for a rating after each answer.")
     args = parser.parse_args()
 
@@ -57,11 +67,11 @@ def main() -> int:
         print(error)
         return 1
     user = {"user_id": "CLI_USER", "role": args.role}
-    print(f"HR assistant ready | role: {args.role} | LLM: {settings.llm_provider}")
+    print(f"HR assistant ready | role: {args.role} | LLM: {settings.llm_provider} | style: {args.style}")
 
     def answer_one(question: str) -> None:
         try:
-            response = pipeline.ask(question, user, include_archived=args.include_archived)
+            response = pipeline.ask(question, user, include_archived=args.include_archived, style=args.style)
         except (ValueError, PermissionError) as error:
             print(error)
             return
@@ -70,6 +80,7 @@ def main() -> int:
             return
         print("\n" + format_response(response))
         show_evaluation(response["evaluation"])
+        show_usage(response)
         if args.feedback:
             collect_feedback(response)
 

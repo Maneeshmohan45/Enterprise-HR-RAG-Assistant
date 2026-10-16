@@ -24,12 +24,13 @@ def test_leave_v1_is_archived_and_v2_is_current(chunks):
     assert v2 and all(c.metadata["is_current"] is True and c.metadata["version_number"] == 2 for c in v2)
 
 
-def test_profiles_are_confidential_directory_is_internal(chunks):
+def test_people_and_department_data_are_confidential(chunks):
     levels = {}
     for c in chunks:
         levels.setdefault(c.metadata["file_name"], set()).add(c.metadata["access_level"])
     assert levels["employee_profiles.json"] == {"confidential"}
-    assert levels["employee_directory.csv"] == {"internal"}
+    assert levels["employee_directory.csv"] == {"confidential"}
+    assert levels["department_details.xlsx"] == {"confidential"}
 
 
 def test_chunk_ids_unique_and_every_chunk_has_required_metadata(chunks):

@@ -60,8 +60,12 @@ class Settings:
     rrf_k: int = 60                 # Reciprocal Rank Fusion constant
     rrf_max_results: int = 18       # candidates sent to the reranker
     rerank_top_n: int = 14          # kept after reranking
-    context_chunks: int = 12        # chunks that go into the prompt
-    max_context_chars: int = 14000
+    # Simple questions get a small prompt (cheaper, faster). Multi-part, "list all" and
+    # "compare" questions get the larger one.
+    context_chunks: int = 6
+    max_context_chars: int = 7000
+    context_chunks_complex: int = 12
+    max_context_chars_complex: int = 14000
     max_query_chars: int = 1000
 
     # ---- LLM ---------------------------------------------------------------
@@ -86,6 +90,10 @@ class Settings:
     )
     llm_temperature: float | None = field(
         default_factory=lambda: _optional_float("LLM_TEMPERATURE", 0.2)
+    )
+    # "concise" = short, simple answers (default). "detailed" = fuller explanations.
+    answer_style: str = field(
+        default_factory=lambda: os.getenv("ANSWER_STYLE", "concise").strip().lower()
     )
     llm_max_tokens: int = field(
         default_factory=lambda: int(os.getenv("LLM_MAX_TOKENS", "2048") or 2048)

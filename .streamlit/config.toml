@@ -1,0 +1,8 @@
+# UI theme only. A calm blue accent replaces Streamlit's default red, which made focused
+# controls (such as the Role selector) look like they were in an error state.
+[theme]
+base = "light"
+primaryColor = "#1d4fa8"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f3f6fb"
+textColor = "#13264d"

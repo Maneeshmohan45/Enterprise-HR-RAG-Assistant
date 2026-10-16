@@ -255,14 +255,28 @@ def describe_location(meta: dict) -> str:
     return ""
 
 
-def build_context(query: str, docs: list[Document], cfg: Settings = default_settings):
+_COMPLEX_WORDS = re.compile(
+    r"\b(all|every|each|list|compare|comparison|difference|differences|versus|vs|both)\b", re.I)
+
+
+def choose_context_budget(question: str, sub_queries: list[str], cfg: Settings = default_settings):
+    """Return ``(max_chunks, max_chars)``: a small prompt for simple questions, a big one for complex."""
+    complex_question = bool(sub_queries) or bool(_COMPLEX_WORDS.search(question)) or len(question.split()) > 35
+    if complex_question:
+        return cfg.context_chunks_complex, cfg.max_context_chars_complex
+    return cfg.context_chunks, cfg.max_context_chars
+
+
+def build_context(query: str, docs: list[Document], cfg: Settings = default_settings,
+                  max_chunks: int | None = None, max_chars: int | None = None):
     """Return ``(context_text, sources, selected_docs)``.
 
     Sources are added one at a time until the character budget is used up, so
     the citation list never contains a source the model did not actually see.
     """
     unique, seen = [], set()
-    for doc in docs[: cfg.context_chunks]:
+    max_chars = max_chars or cfg.max_context_chars
+    for doc in docs[: (max_chunks or cfg.context_chunks)]:
         key = normalize_for_hash(doc.page_content)
         if key not in seen:
             seen.add(key)
@@ -286,9 +300,9 @@ def build_context(query: str, docs: list[Document], cfg: Settings = default_sett
             f"File: {meta.get('file_name')}\nSection: {meta.get('section_title')}\n"
             f"Location: {describe_location(meta) or 'n/a'}\n{status}\n{text}"
         )
-        if parts and used + len(block) > cfg.max_context_chars:
+        if parts and used + len(block) > max_chars:
             break
-        block = block[: cfg.max_context_chars]
+        block = block[:max_chars]
         parts.append(block)
         used += len(block) + 2
         selected.append(doc)
