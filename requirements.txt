@@ -1,0 +1,27 @@
+# Core RAG
+langchain-core
+langchain-text-splitters
+langchain-huggingface
+langchain-chroma
+chromadb
+sentence-transformers
+rank-bm25
+
+# File readers (no heavy "unstructured" install needed)
+pypdf
+python-docx
+openpyxl
+beautifulsoup4
+pandas
+
+# LLM providers + config
+anthropic
+openai
+python-dotenv
+PyYAML
+
+# Tests
+pytest
+
+# Web UI
+streamlit>=1.40
