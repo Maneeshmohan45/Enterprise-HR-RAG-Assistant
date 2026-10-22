@@ -1,0 +1,360 @@
+{
+    "company": "Artificial Penetration Software Solutions Pvt. Ltd.",
+    "dataset_type": "Synthetic HR Employee Profiles",
+    "record_count": 8,
+    "employees": [
+        {
+            "employee_id": "APS001",
+            "personal_details": {
+                "full_name": "Aarav Mehta",
+                "gender": "Male",
+                "date_of_birth": "1988-06-14",
+                "marital_status": "Married"
+            },
+            "contact_details": {
+                "official_email": "aarav.mehta@apss.example",
+                "personal_email": "aarav.mehta.personal@example.com",
+                "phone_number": "9000000001",
+                "address": {
+                    "street": "12 Green Park Road",
+                    "city": "Hyderabad",
+                    "state": "Telangana",
+                    "postal_code": "500081",
+                    "country": "India"
+                }
+            },
+            "employment_details": {
+                "department": "Human Resources",
+                "designation": "HR Manager",
+                "employment_type": "Permanent",
+                "date_of_joining": "2021-03-15",
+                "work_location": "Hyderabad",
+                "employment_status": "Active",
+                "reporting_manager": {
+                    "name": "Priya Nair",
+                    "designation": "Senior HR Executive"
+                }
+            },
+            "skills": [
+                "HR Operations",
+                "Employee Relations",
+                "Policy Management",
+                "Recruitment"
+            ],
+            "emergency_contact": {
+                "name": "Riya Mehta",
+                "relationship": "Spouse",
+                "phone_number": "9100000001"
+            }
+        },
+        {
+            "employee_id": "APS006",
+            "personal_details": {
+                "full_name": "Ananya Sharma",
+                "gender": "Female",
+                "date_of_birth": "1994-09-22",
+                "marital_status": "Single"
+            },
+            "contact_details": {
+                "official_email": "ananya.sharma@apss.example",
+                "personal_email": "ananya.sharma.personal@example.com",
+                "phone_number": "9000000006",
+                "address": {
+                    "street": "44 Lake View Colony",
+                    "city": "Hyderabad",
+                    "state": "Telangana",
+                    "postal_code": "500032",
+                    "country": "India"
+                }
+            },
+            "employment_details": {
+                "department": "Data Science",
+                "designation": "Data Scientist",
+                "employment_type": "Permanent",
+                "date_of_joining": "2022-09-19",
+                "work_location": "Hyderabad",
+                "employment_status": "Active",
+                "reporting_manager": {
+                    "name": "Karthik Reddy",
+                    "designation": "Lead Data Scientist"
+                }
+            },
+            "skills": [
+                "Python",
+                "Machine Learning",
+                "SQL",
+                "Power BI",
+                "LangChain"
+            ],
+            "emergency_contact": {
+                "name": "Rajesh Sharma",
+                "relationship": "Father",
+                "phone_number": "9100000006"
+            }
+        },
+        {
+            "employee_id": "APS008",
+            "personal_details": {
+                "full_name": "Sai Krishna",
+                "gender": "Male",
+                "date_of_birth": "1993-02-11",
+                "marital_status": "Married"
+            },
+            "contact_details": {
+                "official_email": "sai.krishna@apss.example",
+                "personal_email": "sai.krishna.personal@example.com",
+                "phone_number": "9000000008",
+                "address": {
+                    "street": "8 Jubilee Enclave",
+                    "city": "Hyderabad",
+                    "state": "Telangana",
+                    "postal_code": "500084",
+                    "country": "India"
+                }
+            },
+            "employment_details": {
+                "department": "Quality Assurance",
+                "designation": "QA Automation Engineer",
+                "employment_type": "Permanent",
+                "date_of_joining": "2023-04-10",
+                "work_location": "Hyderabad",
+                "employment_status": "Active",
+                "reporting_manager": {
+                    "name": "Meera Joshi",
+                    "designation": "QA Manager"
+                }
+            },
+            "skills": [
+                "Selenium",
+                "Python",
+                "API Testing",
+                "Test Automation"
+            ],
+            "emergency_contact": {
+                "name": "Lakshmi Krishna",
+                "relationship": "Spouse",
+                "phone_number": "9100000008"
+            }
+        },
+        {
+            "employee_id": "APS014",
+            "personal_details": {
+                "full_name": "Ishita Das",
+                "gender": "Female",
+                "date_of_birth": "1996-12-03",
+                "marital_status": "Single"
+            },
+            "contact_details": {
+                "official_email": "ishita.das@apss.example",
+                "personal_email": "ishita.das.personal@example.com",
+                "phone_number": "9000000014",
+                "address": {
+                    "street": "22 Banjara Hills Road",
+                    "city": "Hyderabad",
+                    "state": "Telangana",
+                    "postal_code": "500034",
+                    "country": "India"
+                }
+            },
+            "employment_details": {
+                "department": "Marketing",
+                "designation": "Digital Marketing Specialist",
+                "employment_type": "Permanent",
+                "date_of_joining": "2023-08-07",
+                "work_location": "Hyderabad",
+                "employment_status": "Active",
+                "reporting_manager": {
+                    "name": "Naveen Gupta",
+                    "designation": "Marketing Manager"
+                }
+            },
+            "skills": [
+                "SEO",
+                "Google Ads",
+                "Social Media Marketing",
+                "Content Strategy"
+            ],
+            "emergency_contact": {
+                "name": "Madhav Das",
+                "relationship": "Brother",
+                "phone_number": "9100000014"
+            }
+        },
+        {
+            "employee_id": "APS016",
+            "personal_details": {
+                "full_name": "Farhan Ali",
+                "gender": "Male",
+                "date_of_birth": "1992-05-18",
+                "marital_status": "Married"
+            },
+            "contact_details": {
+                "official_email": "farhan.ali@apss.example",
+                "personal_email": "farhan.ali.personal@example.com",
+                "phone_number": "9000000016",
+                "address": {
+                    "street": "19 Remote Residency",
+                    "city": "Pune",
+                    "state": "Maharashtra",
+                    "postal_code": "411014",
+                    "country": "India"
+                }
+            },
+            "employment_details": {
+                "department": "Engineering",
+                "designation": "Python Developer",
+                "employment_type": "Contract",
+                "date_of_joining": "2024-01-08",
+                "work_location": "Remote",
+                "employment_status": "Active",
+                "reporting_manager": {
+                    "name": "Neha Iyer",
+                    "designation": "Engineering Manager"
+                }
+            },
+            "skills": [
+                "Python",
+                "FastAPI",
+                "PostgreSQL",
+                "Docker"
+            ],
+            "emergency_contact": {
+                "name": "Sana Ali",
+                "relationship": "Spouse",
+                "phone_number": "9100000016"
+            }
+        },
+        {
+            "employee_id": "APS019",
+            "personal_details": {
+                "full_name": "Kavya Rao",
+                "gender": "Female",
+                "date_of_birth": "1995-07-27",
+                "marital_status": "Single"
+            },
+            "contact_details": {
+                "official_email": "kavya.rao@apss.example",
+                "personal_email": "kavya.rao.personal@example.com",
+                "phone_number": "9000000019",
+                "address": {
+                    "street": "51 Madhapur Main Road",
+                    "city": "Hyderabad",
+                    "state": "Telangana",
+                    "postal_code": "500081",
+                    "country": "India"
+                }
+            },
+            "employment_details": {
+                "department": "Data Science",
+                "designation": "Machine Learning Engineer",
+                "employment_type": "Permanent",
+                "date_of_joining": "2023-02-13",
+                "work_location": "Hyderabad",
+                "employment_status": "Active",
+                "reporting_manager": {
+                    "name": "Karthik Reddy",
+                    "designation": "Lead Data Scientist"
+                }
+            },
+            "skills": [
+                "Python",
+                "Deep Learning",
+                "MLOps",
+                "Computer Vision"
+            ],
+            "emergency_contact": {
+                "name": "Suresh Rao",
+                "relationship": "Father",
+                "phone_number": "9100000019"
+            }
+        },
+        {
+            "employee_id": "APS021",
+            "personal_details": {
+                "full_name": "Divya Menon",
+                "gender": "Female",
+                "date_of_birth": "1997-01-15",
+                "marital_status": "Single"
+            },
+            "contact_details": {
+                "official_email": "divya.menon@apss.example",
+                "personal_email": "divya.menon.personal@example.com",
+                "phone_number": "9000000021",
+                "address": {
+                    "street": "7 Kondapur Lane",
+                    "city": "Hyderabad",
+                    "state": "Telangana",
+                    "postal_code": "500084",
+                    "country": "India"
+                }
+            },
+            "employment_details": {
+                "department": "Quality Assurance",
+                "designation": "Manual Test Engineer",
+                "employment_type": "Permanent",
+                "date_of_joining": "2023-09-11",
+                "work_location": "Hyderabad",
+                "employment_status": "Active",
+                "reporting_manager": {
+                    "name": "Meera Joshi",
+                    "designation": "QA Manager"
+                }
+            },
+            "skills": [
+                "Manual Testing",
+                "Jira",
+                "Regression Testing",
+                "Test Case Design"
+            ],
+            "emergency_contact": {
+                "name": "Anil Menon",
+                "relationship": "Father",
+                "phone_number": "9100000021"
+            }
+        },
+        {
+            "employee_id": "APS028",
+            "personal_details": {
+                "full_name": "Abhinav Roy",
+                "gender": "Male",
+                "date_of_birth": "2002-10-09",
+                "marital_status": "Single"
+            },
+            "contact_details": {
+                "official_email": "abhinav.roy@apss.example",
+                "personal_email": "abhinav.roy.personal@example.com",
+                "phone_number": "9000000028",
+                "address": {
+                    "street": "31 Student Residency",
+                    "city": "Hyderabad",
+                    "state": "Telangana",
+                    "postal_code": "500090",
+                    "country": "India"
+                }
+            },
+            "employment_details": {
+                "department": "Engineering",
+                "designation": "Software Engineer Intern",
+                "employment_type": "Intern",
+                "date_of_joining": "2025-01-06",
+                "work_location": "Hyderabad",
+                "employment_status": "Active",
+                "reporting_manager": {
+                    "name": "Neha Iyer",
+                    "designation": "Engineering Manager"
+                }
+            },
+            "skills": [
+                "Python",
+                "HTML",
+                "CSS",
+                "Git"
+            ],
+            "emergency_contact": {
+                "name": "Arindam Roy",
+                "relationship": "Father",
+                "phone_number": "9100000028"
+            }
+        }
+    ]
+}

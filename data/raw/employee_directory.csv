@@ -1,0 +1,31 @@
+﻿employee_id,employee_name,gender,department,designation,employment_type,work_location,official_email,phone_number,date_of_joining,employment_status,reporting_manager
+APS001,Aarav Mehta,Male,Human Resources,HR Manager,Permanent,Hyderabad,aarav.mehta@apss.example,9000000001,2021-03-15,Active,Priya Nair
+APS002,Priya Nair,Female,Human Resources,Senior HR Executive,Permanent,Hyderabad,priya.nair@apss.example,9000000002,2022-06-01,Active,Aarav Mehta
+APS003,Rohan Verma,Male,Engineering,Software Engineer,Permanent,Hyderabad,rohan.verma@apss.example,9000000003,2023-01-09,Active,Neha Iyer
+APS004,Neha Iyer,Female,Engineering,Engineering Manager,Permanent,Hyderabad,neha.iyer@apss.example,9000000004,2020-08-17,Active,Vikram Rao
+APS005,Vikram Rao,Male,Management,Chief Technology Officer,Permanent,Hyderabad,vikram.rao@apss.example,9000000005,2019-02-11,Active,Executive Board
+APS006,Ananya Sharma,Female,Data Science,Data Scientist,Permanent,Hyderabad,ananya.sharma@apss.example,9000000006,2022-09-19,Active,Karthik Reddy
+APS007,Karthik Reddy,Male,Data Science,Lead Data Scientist,Permanent,Hyderabad,karthik.reddy@apss.example,9000000007,2020-11-23,Active,Vikram Rao
+APS008,Sai Krishna,Male,Quality Assurance,QA Automation Engineer,Permanent,Hyderabad,sai.krishna@apss.example,9000000008,2023-04-10,Active,Meera Joshi
+APS009,Meera Joshi,Female,Quality Assurance,QA Manager,Permanent,Hyderabad,meera.joshi@apss.example,9000000009,2021-07-05,Active,Vikram Rao
+APS010,Arjun Patel,Male,DevOps,DevOps Engineer,Permanent,Hyderabad,arjun.patel@apss.example,9000000010,2022-12-12,Active,Rahul Kapoor
+APS011,Rahul Kapoor,Male,DevOps,DevOps Lead,Permanent,Hyderabad,rahul.kapoor@apss.example,9000000011,2020-05-18,Active,Vikram Rao
+APS012,Sneha Kulkarni,Female,Finance,Finance Executive,Permanent,Hyderabad,sneha.kulkarni@apss.example,9000000012,2023-03-20,Active,Deepak Menon
+APS013,Deepak Menon,Male,Finance,Finance Manager,Permanent,Hyderabad,deepak.menon@apss.example,9000000013,2021-01-25,Active,Executive Board
+APS014,Ishita Das,Female,Marketing,Digital Marketing Specialist,Permanent,Hyderabad,ishita.das@apss.example,9000000014,2023-08-07,Active,Naveen Gupta
+APS015,Naveen Gupta,Male,Marketing,Marketing Manager,Permanent,Hyderabad,naveen.gupta@apss.example,9000000015,2021-10-04,Active,Executive Board
+APS016,Farhan Ali,Male,Engineering,Python Developer,Contract,Remote,farhan.ali@apss.example,9000000016,2024-01-08,Active,Neha Iyer
+APS017,Pooja Singh,Female,Engineering,Frontend Developer,Permanent,Hyderabad,pooja.singh@apss.example,9000000017,2023-06-12,Active,Neha Iyer
+APS018,Aditya Jain,Male,Engineering,Backend Developer,Permanent,Hyderabad,aditya.jain@apss.example,9000000018,2022-04-18,Active,Neha Iyer
+APS019,Kavya Rao,Female,Data Science,Machine Learning Engineer,Permanent,Hyderabad,kavya.rao@apss.example,9000000019,2023-02-13,Active,Karthik Reddy
+APS020,Varun Bhat,Male,Data Science,Data Analyst,Permanent,Hyderabad,varun.bhat@apss.example,9000000020,2024-02-05,Active,Karthik Reddy
+APS021,Divya Menon,Female,Quality Assurance,Manual Test Engineer,Permanent,Hyderabad,divya.menon@apss.example,9000000021,2023-09-11,Active,Meera Joshi
+APS022,Harish Kumar,Male,Support,Technical Support Engineer,Permanent,Hyderabad,harish.kumar@apss.example,9000000022,2022-07-18,Active,Lavanya Reddy
+APS023,Lavanya Reddy,Female,Support,Support Manager,Permanent,Hyderabad,lavanya.reddy@apss.example,9000000023,2020-09-14,Active,Vikram Rao
+APS024,Nikhil Soni,Male,Sales,Business Development Executive,Permanent,Hyderabad,nikhil.soni@apss.example,9000000024,2023-11-06,Active,Ritu Malhotra
+APS025,Ritu Malhotra,Female,Sales,Sales Manager,Permanent,Hyderabad,ritu.malhotra@apss.example,9000000025,2021-05-31,Active,Executive Board
+APS026,Manoj Yadav,Male,Administration,Office Administrator,Permanent,Hyderabad,manoj.yadav@apss.example,9000000026,2022-02-21,Active,Aarav Mehta
+APS027,Shreya Bose,Female,Human Resources,Talent Acquisition Specialist,Permanent,Hyderabad,shreya.bose@apss.example,9000000027,2023-05-15,Active,Aarav Mehta
+APS028,Abhinav Roy,Male,Engineering,Software Engineer Intern,Intern,Hyderabad,abhinav.roy@apss.example,9000000028,2025-01-06,Active,Neha Iyer
+APS029,Tanvi Shah,Female,Data Science,Data Science Intern,Intern,Remote,tanvi.shah@apss.example,9000000029,2025-01-13,Active,Karthik Reddy
+APS030,Suresh Naidu,Male,Quality Assurance,QA Consultant,Contract,Remote,suresh.naidu@apss.example,9000000030,2024-07-01,Inactive,Meera Joshi
