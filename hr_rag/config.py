@@ -107,6 +107,31 @@ class Settings:
         default_factory=lambda: os.getenv("INJECTION_GUARD_MODE", "enforce").strip().lower()
     )
 
+    # ---- out-of-domain handling ---------------------------------------------
+    # Domain rules (arithmetic, code, creative writing, general knowledge) are deterministic: enforce.
+    domain_guard_mode: str = field(
+        default_factory=lambda: os.getenv("DOMAIN_GUARD_MODE", "enforce").strip().lower()
+    )
+    # Relevance gate: a second, isolated layer. It compares the best reranker score with a threshold
+    # that must be calibrated on the real reranker (scripts/calibrate_relevance.py). Until then it only
+    # records what it would have done ("shadow"); "enforce" without a threshold is refused at start.
+    relevance_gate_mode: str = field(
+        default_factory=lambda: os.getenv("RELEVANCE_GATE_MODE", "shadow").strip().lower()
+    )
+    relevance_min_rerank_score: float | None = field(
+        default_factory=lambda: (float(os.getenv("RELEVANCE_MIN_RERANK_SCORE"))
+                                 if os.getenv("RELEVANCE_MIN_RERANK_SCORE", "").strip() else None)
+    )
+    # Numeric gate: an answer may only state numbers (and time units) that the sources give or the question
+    # already contained. It withholds invented, converted or calculated figures. Deterministic: enforce.
+    numeric_gate_mode: str = field(
+        default_factory=lambda: os.getenv("NUMERIC_GATE_MODE", "enforce").strip().lower()
+    )
+    # Show the answer as it is generated (the chat updates while the model writes).
+    stream_responses: bool = field(
+        default_factory=lambda: os.getenv("STREAM_RESPONSES", "true").strip().lower() not in ("0", "false", "no", "off")
+    )
+
     # ---- evaluation thresholds (teaching values; tune on real data) --------
     lexical_grounding_threshold: float = 0.45
     semantic_grounding_threshold: float = 0.50

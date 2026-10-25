@@ -51,15 +51,23 @@ _NAME = rf"(?!{_GENERIC_NAME}\b)[a-z][a-z.'-]+\s+(?!{_GENERIC_NAME}\b)[a-z][a-z.
 _NAME_FOR_CONTACT = (rf"(?!{_GENERIC_NAME}\b|{_CONTACT_WORDS}\b)[a-z][a-z.'-]+\s+"
                      rf"(?!{_GENERIC_NAME}\b|{_CONTACT_WORDS}\b)[a-z][a-z.'-]+(?=\s*(?:[?.!,;]|$|\s(?:and|or)\b))")
 _DEPT = rf"(?!(?:{_FUNCTION})\b)[\w&-]+(?:\s+(?!(?:{_FUNCTION})\b)[\w&-]+)?"        # a department's name
+# A list of attributes ("home address, emergency contact and phone number for ...") only names a PERSON when a
+# cue word says so; otherwise "PAN copies for tax deduction verification" would look like a person called Tax Deduction.
+_PERSON_CUE = r"(?:employee|staff\s+member|colleague|person|candidate|worker)"
 _NOT_GENERIC_OWNER = (r"(?!(?:the|an?|each|every|any|new|company|organi[sz]ation|office|hr|department|team|"
                       r"policy|handbook|employer|employee|employees|staff|person|someone|anyone|candidate|"
                       r"applicant|hire|intern|manager)'s\b)")
 _PERSONAL = (r"(?:date\s+of\s+birth|dob|birthday|birth\s*date|home\s+address|residential\s+address|"
              r"personal\s+e-?mail|emergency\s+contact|marital\s+status|salary|ctc|compensation|"
              r"employee\s+(?:id|number)|date\s+of\s+joining|joining\s+date|reporting\s+manager|"
-             r"performance\s+rating)")
+             r"performance\s+rating|remuneration|take[- ]home(?:\s+pay)?|(?:gross|net|monthly|annual)\s+(?:pay|salary)|"
+             r"pay\s+package|pay\s*slips?|bank\s+(?:account|details|information)(?:\s+(?:number|details|information))?|"
+             r"ifsc(?:\s+code)?|pan(?:\s+(?:card|number|no\.?))?|aadhaa?r(?:\s+(?:card|number|no\.?))?|"
+             r"national\s+id(?:entification)?(?:\s+number)?|ssn|social\s+security(?:\s+number)?|"
+             r"passport(?:\s+number)?|tax\s+id|uan|pf\s+(?:number|account))")
 _CONTACT = (r"(?:(?:official\s+|work\s+)?e-?mail(?:\s+address|\s+id)?|phone(?:\s+number)?|"
-            r"mobile(?:\s+number)?|contact\s+number|address)")
+            r"mobile(?:\s+number)?|contact\s+number|address|contact\s+(?:details|information|info)|"
+            r"cell(?:\s*phone)?(?:\s+number)?|whatsapp(?:\s+number)?|personal\s+(?:phone|number|mobile))")
 _UNIT = r"(?:department|dept|team)"
 
 RESTRICTED_INTENT_RULES: list[dict] = [
@@ -91,15 +99,18 @@ RESTRICTED_INTENT_RULES: list[dict] = [
         "name": "person_personal_data", "requires_level": "confidential",
         "patterns": [
             rf"\b{_NOT_GENERIC_OWNER}[\w-]+'s\s+(?:\w+\s+){{0,2}}(?:{_PERSONAL}|{_CONTACT})\b",
-            rf"\b{_PERSONAL}\s+(?:of|for)\s+(?:the\s+employee\s+)?{_NAME}",
+            rf"\b{_PERSONAL}\s+(?:of|for)\s+(?:the\s+)?(?:employee\s+)?{_NAME}",
+            # a list of attributes before the person: "home address, emergency contact and phone number for Rahul Sharma"
+            rf"\b(?:{_PERSONAL})\b[^.?!]{{0,80}}\b(?:of|for)\s+(?:the\s+)?{_PERSON_CUE}\s+{_NAME}",
             rf"\bhow\s+much\s+(?:does|is)\s+{_NAME}\s+(?:earn|paid|make)\b",
-            rf"\b{_CONTACT}\s+(?:of|for)\s+(?:the\s+employee\s+)?{_NAME_FOR_CONTACT}",
+            rf"\b{_CONTACT}\s+(?:of|for)\s+(?:the\s+)?(?:employee\s+)?{_NAME_FOR_CONTACT}",
+            rf"\b(?:{_CONTACT})\b[^.?!]{{0,80}}\b(?:of|for)\s+(?:the\s+)?{_PERSON_CUE}\s+{_NAME_FOR_CONTACT}",
         ]},
     {   # employee profiles / records
         "name": "employee_records", "requires_level": "confidential",
         "patterns": [
             rf"\b(?:employee|personnel|staff|hr|incomplete|invalid)\s+(?:profile|record|file)s?\s+(?:of|for)\s+"
-            rf"(?:the\s+employee\s+)?{_NAME}",
+            rf"(?:the\s+)?(?:employee\s+)?{_NAME}",
             r"\b(?:show|give|find|get|list|display|pull|share|open)\b[^.?]{0,20}\b(?:employee|personnel|staff)\s+"
             r"(?:profile|record|file)s?\b",
             rf"\b{_NOT_GENERIC_OWNER}[\w-]+'s\s+(?:employee\s+)?(?:profile|record|personnel\s+file)\b",
@@ -124,6 +135,12 @@ _PREAMBLE = re.compile(
     r"|^(?:pretend|act|behave|respond)\b.*\b(?:hr|admin\w*|manager)\b"
     r"|^(?:i\s+am|i'm|you\s+are\s+now|as\s+an?)\b.*\b(?:hr|admin\w*|manager|authori[sz]ed)\b", re.I)
 _QUESTION_START = re.compile(r"^(?:what|how|why|when|who|which|where|is|are|can|does|do|should|will|would)\b", re.I)
+# A leftover part must itself be a question or a request. "I am preparing the tax audit file." is context,
+# not something to answer, so when only that is left the whole request counts as restricted.
+_REQUEST_WORD = re.compile(
+    r"\?|\b(?:what|how|why|when|who|which|where|list|give|show|tell|explain|describe|compare|summari[sz]e|identify|"
+    r"find|provide|state|name|outline|write|create|generate|compose|calculate|compute|translate|draft|make|solve|"
+    r"code|print|can\s+i|do\s+i|does|is\s+there|are\s+there)\b", re.I)
 
 
 @dataclass(frozen=True)
@@ -166,5 +183,6 @@ def check_scope(question: str, levels: list[str]) -> ScopeDecision:
     parts = [p for p in parts if not _CONNECTOR.match(p) and not _PREAMBLE.search(p)]
     restricted_parts = [p for p in parts if _matches(p, rules)]
     # If no single part matched (a pattern spanning a split point), treat all of it as restricted.
-    permitted = [p for p in parts if p not in restricted_parts] if restricted_parts else []
+    permitted = ([p for p in parts if p not in restricted_parts and _REQUEST_WORD.search(p)]
+                 if restricted_parts else [])
     return ScopeDecision(True, _join(permitted) if permitted else None, tuple(sorted(matched)))

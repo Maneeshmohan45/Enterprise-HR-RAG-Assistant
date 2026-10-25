@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+from . import citations
 from .config import Settings, settings as default_settings
 
 _GROUNDING_STOP = {
@@ -33,7 +34,7 @@ _WORD_NUMBERS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
 
 def extract_numbers(text: str) -> set[str]:
     """Numbers in a text, ignoring [S1] markers and list numbering. Words count too ("five" = 5)."""
-    text = re.sub(r"\[S\d+\]", " ", text)
+    text = citations.MARKER.sub(" ", text)
     text = re.sub(r"(?m)^\s*(?:#+\s*)?\d+[.)]\s+", " ", text)
     numbers = {n.rstrip(".") for n in re.findall(r"\d+(?:\.\d+)?", text)}
     numbers |= {str(_WORD_NUMBERS[w]) for w in re.findall(r"[a-z]+", text.lower()) if w in _WORD_NUMBERS}
@@ -142,6 +143,14 @@ def log_query(response: dict, cfg: Settings = default_settings) -> None:
         "request_signals": response.get("request_signals"),
         "injection_action": response.get("injection_action"),
         "echo_anomaly": response.get("echo_anomaly"),
+        # Response class and its checks (None on rows written before classes existed).
+        "response_class": response.get("response_class"),
+        "class_checks": response.get("class_checks"),
+        "class_passed": response.get("class_passed"),
+        "domain_category": response.get("domain_category"),
+        "domain_action": response.get("domain_action"),
+        "relevance_gate": response.get("relevance_gate"),
+        "numeric_gate": response.get("numeric_gate"),
         # Per-check pass/fail, so the Model Evaluation page can show real pass rates.
         "checks": ({k: v for k, v in response["evaluation"].items() if isinstance(v, bool)}
                    if response["evaluation"] else None),

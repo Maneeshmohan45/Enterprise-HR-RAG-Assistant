@@ -15,9 +15,10 @@ from pathlib import Path
 import streamlit as st
 
 from hr_rag import evaluation
+from hr_rag.streaming import visible_text
 from hr_rag.config import ROLE_ACCESS, get_api_key, settings
 from hr_rag.manifest import load_manifest
-from hr_rag.ui_data import (CHECK_LABELS, friendly_error, query_table_rows, read_jsonl,
+from hr_rag.ui_data import (CHECK_LABELS, CLASS_LABELS, friendly_error, query_table_rows, read_jsonl,
                             redact, summarize_feedback, summarize_queries)
 
 st.set_page_config(page_title="HR RAG Assistant", page_icon="👥", layout="wide")
@@ -306,6 +307,13 @@ def render_quality(response: dict) -> None:
         parts.append(f"{timings['total_s']:.1f}s")
     if parts:
         st.markdown(f'<div class="meta-line">{" · ".join(parts)}</div>', unsafe_allow_html=True)
+    cls = response.get("response_class")
+    if cls and cls != "NORMAL_GROUNDED" and response.get("class_passed") is not None:
+        mark = "✓" if response["class_passed"] else "✗ check failed"
+        st.caption(f"Handled as: {CLASS_LABELS.get(cls, cls)} {mark}")
+    if response.get("unsupported_citation_ids"):
+        st.caption("A cited source was hidden because it does not support the answer: "
+                   + ", ".join(response["unsupported_citation_ids"]))
     if report:
         failed = [CHECK_LABELS.get(k, k) for k, v in report.items() if isinstance(v, bool) and not v]
         if failed:
@@ -338,7 +346,7 @@ def render_message(message: dict) -> None:
         response = message["response"]
         if response["status"] in ("access_blocked", "access_restricted", "declined_injection"):
             st.warning(message["content"])
-        elif response["status"] == "no_context":
+        elif response["status"] in ("no_context", "declined_out_of_domain", "declined_ungrounded"):
             st.info(message["content"])
         else:
             st.markdown(message["content"])
@@ -346,6 +354,8 @@ def render_message(message: dict) -> None:
         render_sources(response.get("cited_sources") or [], key=message["id"])
         if response.get("access_notice"):
             st.warning(response["access_notice"])
+        if response.get("domain_notice"):
+            st.warning(response["domain_notice"])
         if response["status"] == "access_verified":
             if message.get("feedback"):
                 st.caption("Thanks for the feedback.")
@@ -363,15 +373,30 @@ def render_message(message: dict) -> None:
 def ask_pipeline(pipeline, question: str) -> dict:
     """Run one question and return the chat message for the answer (or for the error)."""
     now = clock(datetime.now())
+    # The live answer sits in a temporary holder that is emptied once the final message is rendered, so
+    # nothing is shown twice. Text arrives only after every pre-generation check has passed.
+    holder = st.empty()
     try:
-        with st.spinner("Searching the HR documents..."):
-            response = pipeline.ask(
-                question, {"user_id": "streamlit_user", "role": st.session_state.role},
-                include_archived=st.session_state.include_archived, style=st.session_state.style)
+        with holder.container():
+            with st.chat_message("assistant", avatar="🤖"):
+                box = st.empty()
+                box.markdown("🔎 _Searching the HR documents..._")
+                raw = []
+
+                def on_delta(piece: str) -> None:
+                    raw.append(piece)
+                    box.markdown(visible_text("".join(raw)) + " ▌")
+
+                response = pipeline.ask(
+                    question, {"user_id": "streamlit_user", "role": st.session_state.role},
+                    include_archived=st.session_state.include_archived, style=st.session_state.style,
+                    on_delta=on_delta if settings.stream_responses else None)
     except Exception as error:  # ValueError, PermissionError, LLMError, anything else
+        holder.empty()
         text, detail = friendly_error(error)
         return {"id": uuid.uuid4().hex, "role": "assistant", "content": text, "detail": detail,
                 "error": True, "time": now}
+    holder.empty()
     return {"id": uuid.uuid4().hex, "role": "assistant", "content": response["answer_display"],
             "response": response, "feedback": None, "time": now}
 
@@ -465,6 +490,17 @@ def evaluation_page() -> None:
         if scored:
             st.markdown("**Quality score per query (oldest to newest)**")
             st.line_chart(pd.DataFrame(scored).set_index("Query"))
+        st.markdown("**Responses by class**")
+        class_rows = []
+        for cls, n in sorted(summary["class_counts"].items(), key=lambda kv: -kv[1]):
+            integrity = summary["class_integrity"].get(cls)
+            class_rows.append({"Class": CLASS_LABELS.get(cls, cls), "Responses": n,
+                               "Handled correctly": (f"{integrity['passed']}/{integrity['total']}"
+                                                     if integrity else ("quality score" if cls == "NORMAL_GROUNDED" else "n/a"))})
+        st.dataframe(pd.DataFrame(class_rows), hide_index=True, use_container_width=True)
+        st.caption("Only normal answers get a quality score. A refusal or a not-found answer is checked for "
+                   "its own behaviour (nothing invented, no source cards, fixed message) instead. These checks "
+                   "show the system behaved as designed; they cannot prove a refusal was warranted.")
         left, right = st.columns(2)
         with left:
             st.markdown("**Status of answers**")

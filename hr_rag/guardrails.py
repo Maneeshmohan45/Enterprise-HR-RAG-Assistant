@@ -5,6 +5,7 @@ import re
 
 from langchain_core.documents import Document
 
+from . import citations
 from .retrieval import is_authorized
 
 
@@ -15,7 +16,7 @@ def verify_access(selected_docs: list[Document], levels: list[str], include_arch
 
 def check_citations(answer: str, source_count: int) -> tuple[bool, list[str], list[str]]:
     """Return ``(all_valid, invalid_ids, used_ids)`` for [S1]-style markers."""
-    used = sorted(set(re.findall(r"\[S(\d+)\]", answer)), key=int)
-    valid = {str(i) for i in range(1, source_count + 1)}
-    invalid = [f"S{n}" for n in used if n not in valid]
-    return (not invalid), invalid, [f"S{n}" for n in used]
+    used = citations.cited_ids(answer)
+    valid = {f"S{i}" for i in range(1, source_count + 1)}
+    invalid = [sid for sid in used if sid not in valid]
+    return (not invalid), invalid, used

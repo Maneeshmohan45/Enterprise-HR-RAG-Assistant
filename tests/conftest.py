@@ -46,7 +46,10 @@ class FakeReranker:
 @pytest.fixture(scope="session")
 def cfg(tmp_path_factory):
     root = tmp_path_factory.mktemp("hr")
-    return Settings(chroma_dir=root / "chroma", logs_dir=root / "logs")
+    # The numeric gate is OFF here because most tests script a model answer ("20 days ...") that has nothing to do
+    # with the sources the fake retrieval returns; they test access, cards and modes, not figures. The gate has
+    # its own tests (test_numeric_gate.py) that switch it to "enforce", which is the production default.
+    return Settings(chroma_dir=root / "chroma", logs_dir=root / "logs", numeric_gate_mode="off")
 
 
 @pytest.fixture(scope="session")

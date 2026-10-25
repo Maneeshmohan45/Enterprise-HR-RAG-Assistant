@@ -351,3 +351,81 @@ def test_a_declined_injection_shows_the_fixed_warning_and_never_calls_the_llm(ap
     assert [w.value for w in app.warning] == [INJECTION_MESSAGE]
     assert not any("Sources (" in e.label for e in app.expander)
     assert not [b for b in app.button if b.label in ("👍", "👎")]
+
+
+# ---------------------------------------------------------------- V1: out-of-domain, classes, source cards, streaming
+def test_an_out_of_domain_question_shows_the_fixed_message_and_never_calls_the_llm(app):
+    from hr_rag.domain_guard import OUT_OF_DOMAIN_MESSAGE
+    seen = []
+    app.state["llm"] = lambda system, user: (seen.append(user) or "x", {})
+    app.run()
+    ask(app, "What is 600 * 700 + 0?")
+    assert seen == [] and OUT_OF_DOMAIN_MESSAGE in [i.value for i in app.info]
+    assert not any("Sources (" in e.label for e in app.expander)
+    assert not [b for b in app.button if b.label in ("👍", "👎")]
+
+
+def test_a_correct_refusal_shows_no_source_cards_and_is_marked_as_handled_correctly(app):
+    app.state["llm"] = lambda system, user: ("I could not find that in the HR documents.", {})
+    app.run()
+    ask(app, "What is the policy on parking spaces for visitors?")
+    assert not any("Sources (" in e.label for e in app.expander)
+    assert "Handled as: Not found in the documents ✓" in page_text(app)
+    assert "Quality check" not in page_text(app)
+
+
+def test_a_normal_answer_appears_once_after_streaming_and_keeps_its_source_cards(app):
+    app.state["llm"] = lambda system, user: ("Annual leave is 20 days per year [S1].", {"input_tokens": 9, "output_tokens": 9})
+    app.run()
+    ask(app, "How many annual leave days do employees get?")
+    shown = [m.value for m in app.markdown if "Annual leave is 20 days per year" in m.value]
+    assert len(shown) == 1 and "[S1]" not in shown[0] and "▌" not in shown[0]
+    assert any("Sources (" in e.label for e in app.expander)
+
+
+def test_the_app_still_works_with_streaming_switched_off(app, monkeypatch, cfg):
+    import dataclasses
+    monkeypatch.setattr(config, "settings", dataclasses.replace(cfg, stream_responses=False))
+    app.run()
+    ask(app, "How many annual leave days do employees get?")
+    assert any("Annual leave is 20 days per year" in m.value for m in app.markdown)
+
+
+def test_the_evaluation_page_lists_responses_by_class(app):
+    app.run()
+    ask(app, "What is 2+2?")
+    ask(app, "How many annual leave days do employees get?")
+    next(b for b in app.sidebar.button if b.label == "Model Evaluation").click().run()
+    assert not app.exception
+    frames = [d.value for d in app.dataframe]
+    assert any("Class" in f.columns and "Handled correctly" in f.columns for f in frames)
+
+
+# ---------------------------------------------------------------- real-model acceptance failures, in the UI
+def test_a_calculated_figure_is_withheld_and_never_appears_on_screen(app, monkeypatch, cfg):
+    import dataclasses
+    from hr_rag.pipeline import INSUFFICIENT_INFO_MESSAGE
+    monkeypatch.setattr(config, "settings", dataclasses.replace(cfg, numeric_gate_mode="enforce"))
+    app.state["llm"] = lambda system, user: ("Your total claim is 1700.", {})
+    app.run()
+    ask(app, "If I spent 1250 on travel and 450 on meals, what is my total claim?")
+    assert INSUFFICIENT_INFO_MESSAGE in [i.value for i in app.info]
+    assert "1700" not in page_text(app) and not any("Sources (" in e.label for e in app.expander)
+    assert "Handled as: Not found in the documents" in page_text(app)
+
+
+def test_a_compound_request_shows_the_hr_answer_and_a_notice_for_the_part_not_answered(app):
+    from hr_rag.domain_guard import DOMAIN_PARTIAL_NOTICE
+    seen = []
+    app.state["llm"] = lambda system, user: (seen.append(user) or "Casual leave carry-forward is 10 days [S1].", {})
+    app.run()
+    ask(app, "What is the carry-forward limit for casual leave, and also write a quick bash one-liner to delete logs?")
+    assert DOMAIN_PARTIAL_NOTICE in [w.value for w in app.warning]
+    assert "bash" not in seen[0].lower() and "carry-forward" in page_text(app)
+
+
+def test_comma_form_citation_markers_never_reach_the_screen(app):
+    app.state["llm"] = lambda system, user: ("Annual leave is 20 days per year [S1, S2].", {})
+    app.run()
+    ask(app, "How many annual leave days do employees get?")
+    assert "[S1" not in page_text(app) and "[S2" not in page_text(app)

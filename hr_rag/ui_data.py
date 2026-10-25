@@ -52,6 +52,27 @@ def _mean(values: list[float]) -> float | None:
     return sum(values) / len(values) if values else None
 
 
+CLASS_LABELS = {"NORMAL_GROUNDED": "Normal grounded answer", "SECURITY_REFUSAL": "Security refusal",
+                "ACCESS_RESTRICTED": "Restricted access", "OUT_OF_DOMAIN": "Out of domain",
+                "NOT_FOUND": "Not found in the documents", "LEGACY": "Before response classes"}
+
+
+def class_integrity(rows: list[dict]) -> dict:
+    """For refusal / not-found classes: how many rows passed their own integrity checks.
+
+    Normal answers are judged by the quality score instead, so they are not listed here. Rows without
+    a class (older log rows) are never counted.
+    """
+    out: dict[str, dict] = {}
+    for row in rows:
+        cls, passed = row.get("response_class"), row.get("class_passed")
+        if cls and cls != "NORMAL_GROUNDED" and passed is not None:
+            entry = out.setdefault(cls, {"passed": 0, "total": 0})
+            entry["total"] += 1
+            entry["passed"] += bool(passed)
+    return out
+
+
 def summarize_queries(rows: list[dict]) -> dict:
     """Aggregate the query log. Anything not recorded for a row is left out, never guessed."""
     scores = [r.get("evaluation_score") for r in rows]
@@ -87,6 +108,8 @@ def summarize_queries(rows: list[dict]) -> dict:
         "avg_input_tokens": _mean([r["usage"].get("input_tokens") for r in used]),
         "avg_output_tokens": _mean([r["usage"].get("output_tokens") for r in used]),
         "status_counts": dict(Counter(r.get("status", "unknown") for r in rows)),
+        "class_counts": dict(Counter(r.get("response_class") or "LEGACY" for r in rows)),
+        "class_integrity": class_integrity(rows),
         "n_with_checks": len(with_checks),
         "check_pass_rates": pass_rates,
         "by_style": by_style,
