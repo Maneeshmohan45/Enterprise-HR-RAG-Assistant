@@ -18,6 +18,39 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(PROJECT_ROOT / ".env")
 
 
+def sync_streamlit_secrets() -> None:
+    """If running inside Streamlit with secrets configured, copy them to os.environ.
+
+    Preserves any existing environment variables. Catches StreamlitSecretNotFoundError.
+    """
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets"):
+            for k, v in st.secrets.items():
+                if isinstance(v, (str, int, float, bool)) and k not in os.environ:
+                    os.environ[k] = str(v)
+    except Exception:
+        pass
+
+
+sync_streamlit_secrets()
+
+
+def _resolve_llm_provider() -> str:
+    """Return the configured LLM provider, auto-detecting based on available keys if not explicit."""
+    sync_streamlit_secrets()
+    explicit = os.getenv("LLM_PROVIDER", "").strip().lower()
+    if explicit in ("claude", "nvidia"):
+        return explicit
+    has_nvidia = bool(os.getenv("NVIDIA_API_KEY", "").strip())
+    has_claude = bool(os.getenv("ANTHROPIC_API_KEY", "").strip())
+    if has_nvidia and not has_claude:
+        return "nvidia"
+    if has_claude and not has_nvidia:
+        return "claude"
+    return "claude"
+
+
 def _optional_float(name: str, default: float | None) -> float | None:
     """Read a float from the environment. An empty value means 'not set'."""
     raw = os.getenv(name)
@@ -70,7 +103,7 @@ class Settings:
 
     # ---- LLM ---------------------------------------------------------------
     llm_provider: str = field(
-        default_factory=lambda: os.getenv("LLM_PROVIDER", "claude").strip().lower()
+        default_factory=_resolve_llm_provider
     )
     anthropic_model: str = field(
         default_factory=lambda: os.getenv("ANTHROPIC_MODEL", "claude-haiku-5-5")
@@ -159,12 +192,23 @@ ROLE_ACCESS: dict[str, list[str]] = {
 settings = Settings()
 
 
-def get_api_key(provider: str) -> str:
+def get_api_key(provider: str | None = None) -> str:
     """Return the API key for a provider or raise a clear error."""
+    sync_streamlit_secrets()
+    if provider is None:
+        provider = _resolve_llm_provider()
     env_name = {"claude": "ANTHROPIC_API_KEY", "nvidia": "NVIDIA_API_KEY"}.get(provider)
     if env_name is None:
         raise ValueError(f"Unsupported LLM_PROVIDER='{provider}'. Use 'claude' or 'nvidia'.")
     key = os.getenv(env_name, "").strip()
+    if not key:
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and env_name in st.secrets and str(st.secrets[env_name]).strip():
+                key = str(st.secrets[env_name]).strip()
+                os.environ[env_name] = key
+        except Exception:
+            pass
     if not key:
         raise ValueError(
             f"{env_name} is missing. Copy .env.example to .env and add your own key."

@@ -16,7 +16,9 @@ import streamlit as st
 
 from hr_rag import evaluation
 from hr_rag.streaming import visible_text
-from hr_rag.config import ROLE_ACCESS, get_api_key, settings
+from hr_rag.config import ROLE_ACCESS, get_api_key, settings, sync_streamlit_secrets
+
+sync_streamlit_secrets()
 from hr_rag.manifest import load_manifest
 from hr_rag.ui_data import (CHECK_LABELS, CLASS_LABELS, friendly_error, query_table_rows, read_jsonl,
                             redact, summarize_feedback, summarize_queries)
@@ -234,17 +236,26 @@ def get_pipeline():
         st.stop()
 
 
+def effective_provider() -> str:
+    provider = settings.llm_provider
+    if provider == "claude" and not os.getenv("ANTHROPIC_API_KEY") and os.getenv("NVIDIA_API_KEY"):
+        return "nvidia"
+    return provider
+
+
 def llm_config_problem() -> str | None:
     """A message if the LLM cannot be called (missing key etc.). The key is never read into the UI."""
     try:
-        get_api_key(settings.llm_provider)
+        sync_streamlit_secrets()
+        get_api_key(effective_provider())
     except ValueError as error:
         return friendly_error(error)[0]
     return None
 
 
 def active_model_name() -> str:
-    return settings.nvidia_model if settings.llm_provider == "nvidia" else settings.anthropic_model
+    provider = effective_provider()
+    return settings.nvidia_model if provider == "nvidia" else settings.anthropic_model
 
 
 # ---------------------------------------------------------------------------
@@ -873,7 +884,7 @@ def about_page() -> None:
         <div class="about-tech-grid">
           <div class="about-tech-item"><h5>Vector Database</h5><p>ChromaDB (Local)</p></div>
           <div class="about-tech-item"><h5>Embeddings</h5><p>{settings.embedding_model.split('/')[-1]}</p></div>
-          <div class="about-tech-item"><h5>Language Model</h5><p>{active_model_name()} ({settings.llm_provider})</p></div>
+          <div class="about-tech-item"><h5>Language Model</h5><p>{active_model_name()} ({effective_provider()})</p></div>
           <div class="about-tech-item"><h5>Reranker</h5><p>{settings.reranker_model.split('/')[-1]}</p></div>
         </div>
         </div>""", unsafe_allow_html=True)

@@ -1,6 +1,7 @@
 """Prompt construction and the LLM provider layer."""
 from __future__ import annotations
 
+import os
 import re
 
 from . import citations
@@ -260,9 +261,16 @@ def _stream_claude(system_prompt: str, user_text: str, cfg: Settings, on_delta) 
 _STREAM_PROVIDERS = {"claude": _stream_claude, "nvidia": _stream_nvidia}
 
 
+def _effective_provider(cfg: Settings) -> str:
+    provider = cfg.llm_provider
+    if provider == "claude" and not os.getenv("ANTHROPIC_API_KEY") and os.getenv("NVIDIA_API_KEY"):
+        return "nvidia"
+    return provider
+
+
 def stream_answer_with_usage(system_prompt: str, user_text: str, cfg: Settings, on_delta) -> tuple[str, dict]:
     """Like ``generate_answer_with_usage`` but passes text pieces to ``on_delta`` as they arrive."""
-    provider = cfg.llm_provider
+    provider = _effective_provider(cfg)
     if provider not in _STREAM_PROVIDERS:
         raise ValueError(f"Unsupported LLM_PROVIDER='{provider}'. Use 'claude' or 'nvidia'.")
     try:
@@ -276,7 +284,7 @@ def stream_answer_with_usage(system_prompt: str, user_text: str, cfg: Settings, 
 def generate_answer_with_usage(system_prompt: str, user_text: str,
                                cfg: Settings = default_settings) -> tuple[str, dict]:
     """Send the grounded prompt to the provider chosen in ``.env``. Returns (text, usage)."""
-    provider = cfg.llm_provider
+    provider = _effective_provider(cfg)
     if provider not in _PROVIDERS:
         raise ValueError(f"Unsupported LLM_PROVIDER='{provider}'. Use 'claude' or 'nvidia'.")
     try:
