@@ -216,9 +216,14 @@ def load_pipeline():
 def get_pipeline():
     """Return the pipeline, or show a clear message and stop the app."""
     if not settings.chroma_dir.exists():
-        st.error("No document index found. Build it first by running `python ingest.py` "
-                 "in your project folder, then refresh this page.")
-        st.stop()
+        with st.spinner("Building document index for first-time setup... (takes ~15 seconds)"):
+            try:
+                from hr_rag.ingestion import run_ingestion
+                run_ingestion(settings, reset=True)
+            except Exception as e:
+                st.error("No document index found. Build it first by running `python ingest.py` "
+                         "in your project folder, then refresh this page.")
+                st.stop()
     try:
         return load_pipeline()
     except Exception as error:  # empty index, missing model files, ...

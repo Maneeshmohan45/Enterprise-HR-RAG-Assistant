@@ -2,7 +2,6 @@
 .env
 
 # generated
-chroma_db/
 logs/*.jsonl
 __pycache__/
 *.pyc
