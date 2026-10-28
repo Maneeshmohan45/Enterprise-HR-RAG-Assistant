@@ -12,3 +12,14 @@ __pycache__/
 .DS_Store
 logs/*.json
 notebooks/
+.vs/
+
+# test & internal artifacts
+acceptance_runs/
+HANDOFF_V1_1.md
+*handoff*.md
+draft*
+scratch/
+*.pdf
+*.rar
+

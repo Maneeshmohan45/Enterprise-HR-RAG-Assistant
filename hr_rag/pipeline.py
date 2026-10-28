@@ -13,6 +13,9 @@ from .generation import (StreamAborted, build_system_prompt, build_user_prompt, 
 from .streaming import NumericStreamGuard
 from .domain_guard import DOMAIN_PARTIAL_NOTICE, OUT_OF_DOMAIN_MESSAGE, DomainAnalysis, analyze_domain
 from .grounding import numeric_issues, question_echo_anomaly
+from .roster import ROSTER_NOTICE, RosterPlan, plan_roster_answer
+from .premise_guard import (PREMISE_PREFIX, STATEMENT_MESSAGE, find_premise_conflicts, is_statement_only,
+                            premise_message)
 from .request_guard import INJECTION_MESSAGE, RequestAnalysis, analyze_request
 from .scope import RESTRICTED_MESSAGE, RESTRICTED_NOTICE, check_scope
 from .retrieval import (HybridRetriever, Reranker, allowed_levels_for, build_context,
@@ -42,7 +45,9 @@ class RAGPipeline:
         for name, value in (("INJECTION_GUARD_MODE", cfg.injection_guard_mode),
                             ("DOMAIN_GUARD_MODE", cfg.domain_guard_mode),
                             ("RELEVANCE_GATE_MODE", cfg.relevance_gate_mode),
-                            ("NUMERIC_GATE_MODE", cfg.numeric_gate_mode)):
+                            ("NUMERIC_GATE_MODE", cfg.numeric_gate_mode),
+                            ("PREMISE_GUARD_MODE", cfg.premise_guard_mode),
+                            ("ROSTER_LOOKUP_MODE", cfg.roster_lookup_mode)):
             if value not in GUARD_MODES:
                 raise ValueError(f"Unsupported {name}='{value}'. Use one of: {', '.join(GUARD_MODES)}.")
         if cfg.relevance_gate_mode == "enforce" and cfg.relevance_min_rerank_score is None:
@@ -61,7 +66,8 @@ class RAGPipeline:
             (lambda system, user, on_delta: stream_answer_with_usage(system, user, cfg, on_delta))
             if llm is None else None)
         self._fixed_messages = (RESTRICTED_MESSAGE, INJECTION_MESSAGE, OUT_OF_DOMAIN_MESSAGE, NO_ANSWER,
-                                ACCESS_BLOCKED_MESSAGE, INSUFFICIENT_INFO_MESSAGE)
+                                ACCESS_BLOCKED_MESSAGE, INSUFFICIENT_INFO_MESSAGE, STATEMENT_MESSAGE)
+        self._fixed_prefixes = (PREMISE_PREFIX,)          # the correction message carries the user's own figure
 
     # -- helpers ---------------------------------------------------------------------------------
     def _finish_declined(self, response: dict, log: bool, llm_called: bool = False) -> dict:
@@ -71,7 +77,7 @@ class RAGPipeline:
         result = assessment.assess(response_class, llm_called=llm_called, answer=response["answer"],
                                    cards=response["cited_sources"], context_text="",
                                    question=response["question"], fixed_messages=self._fixed_messages,
-                                   unsupported_ids=[])
+                                   unsupported_ids=[], fixed_prefixes=self._fixed_prefixes)
         response.update(response_class=response_class, class_checks=result["checks"],
                         class_passed=result["passed"])
         if log:
@@ -179,6 +185,14 @@ class RAGPipeline:
         if domain.permitted_question and self.cfg.domain_guard_mode == "enforce":
             domain_notice, effective_question = DOMAIN_PARTIAL_NOTICE, domain.permitted_question
 
+        # 2a-3. A statement that asks nothing ("My salary is 85,000.") has nothing to answer, and answering it
+        #       would confirm what only the user claimed. Decline before retrieval.
+        statement = self.cfg.premise_guard_mode != "off" and is_statement_only(effective_question)
+        if statement and self.cfg.premise_guard_mode == "enforce":
+            return self._finish_declined(self._declined(
+                query_id=query_id, question=cleaned, role=role, style=style, status="declined_statement",
+                message=STATEMENT_MESSAGE, scope=scope, guard=guard, statement_action="declined"), log)
+
         # 2b. process the query
         retrieval_query = process_query(effective_question)
         sub_queries = [process_query(part) for part in split_subqueries(effective_question)]
@@ -199,6 +213,7 @@ class RAGPipeline:
                 timings={"retrieval_s": round(retrieval_s, 3)}, domain_category="low_relevance",
                 domain_action="relevance_declined", relevance_gate=gate), log)
 
+        conflicts: list = []
         base = {"query_id": query_id, "question": cleaned, "retrieval_query": retrieval_query,
                 "role": role, "style": style, "time": datetime.now().isoformat(timespec="seconds"),
                 "access_notice": RESTRICTED_NOTICE if scope.restricted else None,
@@ -208,7 +223,9 @@ class RAGPipeline:
                 "domain_category": domain.category, "domain_notice": domain_notice,
                 "domain_action": ("partial" if domain_notice else
                                   "shadow_would_decline" if (domain.out_of_domain or domain.permitted_question) else None),
-                "relevance_gate": gate}
+                "relevance_gate": gate,
+                "statement_action": "shadow_would_decline" if statement else None,
+                "premise_conflicts": conflicts}
 
         if not selected:  # never call the LLM with an empty context
             response = {**base, "answer": NO_ANSWER, "answer_display": NO_ANSWER, "sources": [],
@@ -226,6 +243,22 @@ class RAGPipeline:
                                           "citations_valid": True, "invalid_citation_ids": [], "cited_ids": [],
                                           "usage": {}, "timings": {"retrieval_s": round(retrieval_s, 3)}}, log)
 
+        # 3c. A question built on a figure the documents contradict ("paternity leave is 7 weeks" when they say
+        #     7 days) is not answered: the model would repeat or build on the wrong premise.
+        conflicts = find_premise_conflicts(effective_question, sources) if self.cfg.premise_guard_mode != "off" else []
+        if conflicts and self.cfg.premise_guard_mode == "enforce":
+            return self._finish_declined(self._declined(
+                query_id=query_id, question=cleaned, role=role, style=style, status="declined_premise",
+                message=premise_message(conflicts), scope=scope, guard=guard, retrieval_query=retrieval_query,
+                timings={"retrieval_s": round(retrieval_s, 3)}, premise_conflicts=conflicts), log)
+
+        # 3d. Roster and headcount questions: when the department's complete roster chunk was retrieved and the
+        #     question is only a roster request, the answer is written from that chunk (complete by construction).
+        #     A roster-style question answered from individual rows only carries a note that it may be incomplete.
+        roster_plan = (plan_roster_answer(effective_question, sources) if self.cfg.roster_lookup_mode != "off"
+                       else RosterPlan())
+        roster_text = roster_plan.text if self.cfg.roster_lookup_mode == "enforce" else None
+
         # 4. generate (every pre-generation check has passed; streaming starts only here)
         system_prompt = build_system_prompt(style)
         user_prompt = build_user_prompt(effective_question, context)
@@ -233,7 +266,7 @@ class RAGPipeline:
         source_text = "\n".join(f'{s["file_name"]} {s.get("section_title") or ""} {s["text"]}' for s in sources)
         numeric_mode = self.cfg.numeric_gate_mode
         gen_started = time.perf_counter()
-        streaming = on_delta is not None and self.llm_stream is not None
+        streaming = on_delta is not None and self.llm_stream is not None and roster_text is None
         stream_guard, callback = None, on_delta
         if streaming and numeric_mode != "off":
             # Text with a number is shown only after the number has been checked against the sources.
@@ -242,8 +275,11 @@ class RAGPipeline:
                 enforce=numeric_mode == "enforce")
             callback = stream_guard.push
         try:
-            raw = (self.llm_stream(system_prompt, user_prompt, callback) if streaming
-                   else self.llm(system_prompt, user_prompt))
+            if roster_text is not None:
+                raw = (roster_text, {"input_tokens": 0, "output_tokens": 0})          # no model call
+            else:
+                raw = (self.llm_stream(system_prompt, user_prompt, callback) if streaming
+                       else self.llm(system_prompt, user_prompt))
             if stream_guard:
                 stream_guard.finish()
         except StreamAborted as stop:
@@ -270,6 +306,9 @@ class RAGPipeline:
             "estimated": not (usage.get("input_tokens") and usage.get("output_tokens")),
             "context_chunks": len(sources),
         }
+        if roster_text is not None:
+            usage = {"input_tokens": 0, "output_tokens": 0, "estimated": False, "context_chunks": len(sources),
+                     "generation": "roster_lookup"}
 
         # 5. guardrails (access was already verified before generation)
         citations_valid, invalid_ids, used_ids = guardrails.check_citations(answer, len(sources))
@@ -298,7 +337,12 @@ class RAGPipeline:
                     "cited_ids": used_ids, "evaluation": report, "usage": usage, "echo_anomaly": echo_anomaly,
                     "response_class": response_class, "class_checks": result["checks"],
                     "class_passed": result["passed"], "unsupported_citation_ids": unsupported_ids,
-                    "numeric_gate": numeric,
+                    "numeric_gate": numeric, "premise_conflicts": conflicts,
+                    "roster_lookup": {"mode": self.cfg.roster_lookup_mode, "intent": roster_plan.intent,
+                                      "departments": list(roster_plan.departments),
+                                      "answered_from_roster": roster_text is not None},
+                    "roster_notice": (ROSTER_NOTICE if roster_plan.notice and self.cfg.roster_lookup_mode == "enforce"
+                                      else None),
                     "timings": {"retrieval_s": round(retrieval_s, 3),
                                 "generation_s": round(generation_s, 3),
                                 "total_s": round(time.perf_counter() - started, 3)},

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from langchain_core.documents import Document
 
-from . import cleaning, enrichment
+from . import cleaning, enrichment, roster
 from .chunking import chunk_documents
 from .config import PROJECT_ROOT, Settings, settings as default_settings
 from .loaders import load_file
@@ -134,6 +134,9 @@ def prepare_chunks(cfg: Settings = default_settings, verbose: bool = True) -> tu
 
     # 9. chunk ---------------------------------------------------------------------
     chunks = chunk_documents(final_docs)
+    # One complete roster chunk per department (+ a summary) next to the per-employee chunks, so a department's
+    # full member list can be retrieved as a single chunk. Same access level as the directory it comes from.
+    chunks = chunks + roster.build_roster_chunks(chunks)
     per_file = Counter(c.metadata["file_name"] for c in chunks)
     for name, count in per_file.items():
         report["files"][name]["chunks"] = count

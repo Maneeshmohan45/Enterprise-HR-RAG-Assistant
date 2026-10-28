@@ -69,6 +69,16 @@ _CONTACT = (r"(?:(?:official\s+|work\s+)?e-?mail(?:\s+address|\s+id)?|phone(?:\s
             r"mobile(?:\s+number)?|contact\s+number|address|contact\s+(?:details|information|info)|"
             r"cell(?:\s*phone)?(?:\s+number)?|whatsapp(?:\s+number)?|personal\s+(?:phone|number|mobile))")
 _UNIT = r"(?:department|dept|team)"
+# Departments by name. A phrase like "<word> department head" only asks for a person when <word> really is a
+# department: otherwise "before / without / inform department head approval" (a leave-approval question) is
+# mistaken for a directory request. Extend this list when a department is added.
+_KNOWN_DEPT = (r"(?:engineering|data\s+science|human\s+resources|hr|quality\s+assurance|qa|devops|finance|marketing|"
+               r"sales|support|administration|admin|management|operations|legal|product|design|research|analytics|"
+               r"infrastructure|security|procurement|dep\d{2,4})")
+_NOT_APPROVAL = r"(?!\s+(?:approval|approves?|approved|approving|sign[- ]?off|permission|consent|signature|review|decision|nod)\b)"
+# A role name alone ("HR manager", "Sales lead") is a job title that job descriptions describe. It only asks for a PERSON
+# with an identity cue in front of it ("who is", "give me", "name of") or after it ("... name / email / phone").
+_WHO = r"(?:who\s+(?:is|are|was)|who'?s|name(?:\s+of)?|names\s+of|give\s+me|tell\s+me|show\s+me|list|contact(?:\s+details)?\s+(?:of|for)|(?:e-?mail|phone(?:\s+number)?)\s+(?:of|for))"
 
 RESTRICTED_INTENT_RULES: list[dict] = [
     {   # asking for the staff directory or a list of people in a group
@@ -91,7 +101,14 @@ RESTRICTED_INTENT_RULES: list[dict] = [
             r"\bhow\s+many\s+(?:open\s+positions|vacanc\w+)\b",
             rf"\b(?:head|manager|lead|budget|extension|headcount|open\s+positions?)\s+(?:of|for|in)\s+(?:the\s+)?"
             rf"{_DEPT}\s+{_UNIT}\b",
-            rf"\b{_DEPT}\s+(?:department|dept)\s+(?:head|budget|headcount|extension|members|employees|roster)\b",
+            rf"\b{_DEPT}\s+(?:department|dept)\s+(?:budget|headcount|extension|members|employees|roster)\b",
+            # who the head of a department is: only for a real department name, never for approval workflows
+            rf"\b{_WHO}\s+(?:the\s+)?{_KNOWN_DEPT}\s+(?:department\s+|dept\s+)?(?:head|manager|lead|director)\b{_NOT_APPROVAL}",
+            rf"\b{_WHO}\s+(?:the\s+)?(?:department|dept)\s+(?:head|manager|lead|director)\s+(?:of|for|in)\s+(?:the\s+)?{_KNOWN_DEPT}\b",
+            rf"\b{_WHO}\s+(?:the\s+)?(?:head|manager|lead|director)\s+of\s+(?:the\s+)?{_KNOWN_DEPT}\b{_NOT_APPROVAL}",
+            rf"\b{_KNOWN_DEPT}\s+(?:department\s+|dept\s+)?(?:head|manager|lead|director)(?:'s)?\s+(?:name|e-?mail|phone|contact|details)\b",
+            rf"\bwho\s+(?:heads|leads|runs|manages)\s+(?:the\s+)?{_KNOWN_DEPT}\b",
+            rf"\b(?:headcount|head\s+count|budget|extension)\s+(?:of|for|in)\s+(?:the\s+)?{_KNOWN_DEPT}\b",
             rf"\bwho\s+(?:heads|leads|runs|manages)\s+(?:the\s+)?{_DEPT}\s+{_UNIT}\b",
             r"\bwho\s+reports?\s+to\b",
         ]},

@@ -30,7 +30,8 @@ CLASSES = (NORMAL, SECURITY, ACCESS, OUT_OF_DOMAIN, NOT_FOUND)
 # Status values set by the application itself (the model was not asked, or its answer was discarded).
 APP_DECLINE_CLASS = {"declined_injection": SECURITY, "access_restricted": ACCESS, "access_blocked": ACCESS,
                      "declined_out_of_domain": OUT_OF_DOMAIN, "no_context": NOT_FOUND,
-                     "declined_ungrounded": NOT_FOUND}
+                     "declined_ungrounded": NOT_FOUND, "declined_statement": NOT_FOUND,
+                     "declined_premise": NOT_FOUND}
 
 _ABSENCE = re.compile(
     r"\b(?:does\s+not|doesn't|do\s+not|don't|did\s+not|is\s+not|isn't|are\s+not|aren't)\s+"
@@ -113,7 +114,7 @@ def select_source_cards(answer: str, sources: list[dict], cited_ids: list[str], 
 
 def assess(response_class: str, *, llm_called: bool, answer: str, cards: list[dict],
            context_text: str, question: str, fixed_messages: tuple[str, ...],
-           unsupported_ids: list[str]) -> dict:
+           unsupported_ids: list[str], fixed_prefixes: tuple[str, ...] = ()) -> dict:
     """Checks that fit the class. ``passed`` is True/False for refusals and not-found answers, and None
     for normal answers (those are judged by the existing quality score)."""
     if response_class == NORMAL:
@@ -121,7 +122,7 @@ def assess(response_class: str, *, llm_called: bool, answer: str, cards: list[di
     checks = {"no_source_cards": not cards}
     if not llm_called:                       # the application declined; nothing came from the model
         checks["llm_not_called"] = True
-        checks["fixed_message"] = answer in fixed_messages
+        checks["fixed_message"] = answer in fixed_messages or answer.startswith(fixed_prefixes)
     else:                                    # the model declined or said "not found"
         checks["no_invented_numbers"] = not ungrounded_numbers(answer, context_text, question)
         if answer in fixed_messages:         # the model's answer was discarded and replaced by the fixed message

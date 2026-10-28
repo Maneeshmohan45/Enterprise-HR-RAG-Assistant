@@ -20,7 +20,8 @@ SECRET_VALUES = ("1988-06-14", "Green Park Road")          # confidential values
 MODES = ["enforce", "shadow", "off"]
 PACKAGE = Path(request_guard.__file__).parent
 # Every Phase 4 module so far. Later steps add theirs here.
-PHASE4_MODULES = ["request_guard.py", "grounding.py", "domain_guard.py", "assessment.py", "streaming.py"]
+PHASE4_MODULES = ["request_guard.py", "grounding.py", "domain_guard.py", "assessment.py", "streaming.py",
+                  "premise_guard.py", "roster.py"]
 FORBIDDEN_NAMES = {"ROLE_ACCESS", "allowed_levels_for", "build_chroma_filter", "is_authorized", "verify_access",
                    "check_scope", "HybridRetriever", "build_vector_store", "open_vector_store", "Chroma", "chromadb"}
 FORBIDDEN_MODULES = {"retrieval", "vectorstore", "scope", "guardrails", "config", "ingestion", "manifest"}

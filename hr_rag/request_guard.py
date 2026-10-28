@@ -84,6 +84,12 @@ DECLINE_RULES: list[dict] = [
             r"\bsystem\s+prompt\b",
             r"\b(?:reveal|show|repeat|print|display)\s+(?:me\s+)?your\s+(?:instructions|rules|prompt|configuration)\b",
         ]},
+    {   # tag breakouts and jailbreak modes
+        "name": "adversarial_tokens",
+        "patterns": [
+            r"(?i)</?(?:context|system|instruction|prompt)(?:>|\b)",
+            r"(?i)\bDAN\s+mode\b",
+        ]},
 ]
 
 SIGNAL_RULES: list[dict] = [

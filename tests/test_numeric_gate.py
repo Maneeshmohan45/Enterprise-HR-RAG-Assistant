@@ -27,8 +27,10 @@ SOURCES = ("Leave Type: Paternity Leave | V1: 5 Days | V2: 7 Days. Casual leave:
 @pytest.mark.parametrize("answer, question, reasons", [
     ("7 weeks", PATERNITY_Q, ["unit_mismatch"]),                                        # TEST-NEG-03: the policy says 7 DAYS
     ("Paternity leave is 7 weeks under Leave Policy v2.", "paternity?", ["unit_mismatch"]),
+    # TEST-DG-02. V1.1: the figures the user typed are no longer evidence either, so restating them as fact is
+    # reported too (claimed_in_question); the invented result 3150 is still not_in_sources. Withheld as before.
     ("The calculation (1250 * 3) + (450 / 2) - 75 equals 3150.", "Calculate (1250 * 3) + (450 / 2) - 75",
-     ["not_in_sources"]),                                                                # TEST-DG-02: invented result
+     ["claimed_in_question"] * 5 + ["not_in_sources"]),
     ("It is 26 weeks.", "maternity?", ["not_in_sources"]),
     ("You get seven weeks of paternity leave.", "paternity?", ["unit_mismatch"]),       # number words count too
     ("Casual leave is 14 days.", "casual leave?", ["not_in_sources"]),

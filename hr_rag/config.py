@@ -127,6 +127,16 @@ class Settings:
     numeric_gate_mode: str = field(
         default_factory=lambda: os.getenv("NUMERIC_GATE_MODE", "enforce").strip().lower()
     )
+    # Premise guard: user-stated claims are not evidence. "enforce" declines a statement that asks nothing and a
+    # question whose figure the documents contradict; "shadow" only records; "off" disables it.
+    premise_guard_mode: str = field(
+        default_factory=lambda: os.getenv("PREMISE_GUARD_MODE", "enforce").strip().lower()
+    )
+    # Roster lookup: a pure roster or headcount question is answered from the department's complete roster chunk
+    # (complete by construction) instead of by the model. "shadow" only records; "off" disables it.
+    roster_lookup_mode: str = field(
+        default_factory=lambda: os.getenv("ROSTER_LOOKUP_MODE", "enforce").strip().lower()
+    )
     # Show the answer as it is generated (the chat updates while the model writes).
     stream_responses: bool = field(
         default_factory=lambda: os.getenv("STREAM_RESPONSES", "true").strip().lower() not in ("0", "false", "no", "off")

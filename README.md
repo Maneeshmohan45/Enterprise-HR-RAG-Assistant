@@ -1,152 +1,306 @@
-# HR RAG
+# Enterprise HR RAG Assistant (v1.1.0)
 
-Ask questions about HR documents (handbook, policies, directory, holiday calendar, ...) and get
-answers that are **grounded in the documents, cited, and respect who is allowed to see what**.
+An enterprise-grade, retrieval-augmented generation (RAG) assistant for Human Resources policies, handbooks, organizational rosters, and company benefits. 
+
+The assistant delivers answers that are **strictly grounded in source documents, cited with verifiable source cards, protected by role-based access control (RBAC), and guarded against prompt injections, contradictory premises, and hallucinated policy substitutions**.
 
 ```
-15 files  ->  load  ->  clean  ->  validate  ->  dedupe  ->  metadata  ->  chunk  ->  embed  ->  Chroma
-question  ->  permission filter  ->  vector + keyword search  ->  fuse (RRF)  ->  rerank  ->  LLM  ->  checks
+Query -> Request Guard -> Scope Guard -> Premise & Statement Guard -> Domain Guard 
+      -> Hybrid Search (Vector + BM25 with RRF) -> Cross-Encoder Reranker
+      -> [Deterministic Roster Engine | Grounded LLM Generation]
+      -> Numeric Gate & Grounding Verifiers -> Response Assessment Classifier
+      -> Cited Answer + Source Cards
 ```
 
-## 1. Setup (about 10 minutes, once)
+---
 
-Python 3.10 or newer.
+## Project Status
+
+**Current Release: V1.1.0 — Stable Portfolio Release**
+
+V1.1 is the current tested release of the Enterprise HR RAG Assistant. It focuses on grounded HR question answering, role-based access boundaries, premise and statement protection, deterministic department roster retrieval, citation verification, and defense against prompt injection and semantic policy substitution.
+
+---
+
+## V1.1 Validation
+
+V1.1 was validated using automated testing, mutation testing, and real-model acceptance testing:
+
+- **1,367 automated tests passed**
+- **20/20 mutation tests caught**
+- **73/74 real-model acceptance checks passed (98.6%)**
+- **0 critical issues**
+- **0 material issues**
+- **0 PII leaks**
+- **0 RBAC bypasses**
+
+The single non-passing acceptance case was a conservative refusal on informal leave phrasing and was classified as a minor usability limitation rather than a security or data-integrity issue.
+
+> The deterministic roster engine achieved 100% recall and 100% precision across the V1.1 acceptance dataset covering all 11 departments.
+
+---
+
+## 1. Key Capabilities
+
+* **Multi-Format Ingestion**: Ingests, cleans, deduplicates, validates, and chunks across PDF, DOCX, TXT, HTML, CSV, JSON, and XLSX files.
+* **Strict Role-Based Access Control (RBAC)**:
+  * `employee`: Has access to general policies, employee handbooks, onboarding guides, and standard approval workflows. Directory employee profiles and confidential files are strictly inaccessible.
+  * `hr`: Access to all public, internal, and confidential documents (including employee directory profiles, salary bands, and performance records).
+  * *Security Invariant*: Access boundaries are enforced **at the database filter level**—unauthorized chunks never enter the retrieval context or reach the LLM.
+* **Deterministic Department Roster Engine (v1.1)**:
+  * Department headcount and membership queries (e.g., *"How many employees in Engineering?"* or *"List all members in Marketing"*) bypass stochastic LLM counting.
+  * Aggregated deterministically from structured directory records with **100% recall and 100% precision** across the evaluated dataset, accompanied by an explicit data notice.
+* **Multi-Layered Security & Guardrail Pipeline**:
+  * **Request Guard**: Intercepts prompt injections, system prompt exfiltration attempts, Base64 wraps, XML/tag escapes (`</context>`), and DAN mode jailbreaks.
+  * **Scope Guard**: Disambiguates department-head policy approval workflows (permissible for employees) from confidential employee directory lookups (restricted to HR).
+  * **Premise & Statement Guard**: Intercepts declarative user statements and refuses queries containing false factual premises or invalid units (e.g., *"Since we get 30 days of annual leave..."*).
+  * **Domain Guard**: Refuses general knowledge or non-HR queries before retrieval.
+  * **Anti-Semantic Substitution**: Enforces strict policy boundary checks (e.g., questions about pet bereavement or gym subsidies explicitly report absence rather than substituting human bereavement or wellness rules).
+* **Automated Grounding & Evaluation**:
+  * Every generated answer is audited for lexical grounding, semantic grounding, number consistency (Numeric Gate), citation accuracy, and relevance.
+  * Categorized into formal response classes: `NORMAL_GROUNDED`, `ACCESS_RESTRICTED`, `SECURITY_REFUSAL`, `NOT_FOUND`, and `OUT_OF_DOMAIN`.
+* **Exhaustive Automated Verification**: Backed by **1,367 automated offline tests** and **20/20 mutation tests** caught.
+
+---
+
+## 2. Setup (About 5–10 Minutes)
+
+### Prerequisites
+* Python 3.10+ (tested on Python 3.11 – 3.13)
+* Virtual environment tool (`venv`)
+
+### Installation
 
 ```bash
+# 1. Clone repository & enter workspace
+git clone <YOUR_REPO_URL>
+cd Enterprise-HR-RAG-Assistant
+
+# 2. Create and activate virtual environment
 python -m venv .venv
-# Windows:        .venv\Scripts\activate
-# macOS / Linux:  source .venv/bin/activate
+# Windows:
+.venv\Scripts\activate
+# macOS / Linux:
+source .venv/bin/activate
+
+# 3. Install dependencies
 pip install -r requirements.txt
 ```
 
-Create your own `.env` (this file is git-ignored, never share it):
+### Environment Configuration
+
+Create your `.env` from the provided template:
 
 ```bash
-# Windows:        copy .env.example .env
-# macOS / Linux:  cp .env.example .env
+# Windows:
+copy .env.example .env
+# macOS / Linux:
+cp .env.example .env
 ```
 
-Open `.env` and fill in **your own** key: `ANTHROPIC_API_KEY` (if `LLM_PROVIDER=claude`) or
-`NVIDIA_API_KEY` (if `LLM_PROVIDER=nvidia`). Do not reuse a key that was ever pasted in a notebook or chat.
+Open `.env` and configure your API credentials and model settings:
 
-**Using NVIDIA Nemotron (a reasoning model):** keep `NVIDIA_ENABLE_THINKING=false` in `.env`. Without it the model
-spends its token budget "thinking" and may return notes or nothing. The app now stops with a clear message instead of
-showing reasoning notes or crashing. Do not put quotes or spaces around values (`NVIDIA_MODEL=nvidia/...`).
+* **Claude (Anthropic)**:
+  ```ini
+  LLM_PROVIDER=claude
+  ANTHROPIC_API_KEY=your-anthropic-key-here
+  ANTHROPIC_MODEL=claude-haiku-5-5
+  ```
+* **NVIDIA (Nemotron / OpenAI-compatible)**:
+  ```ini
+  LLM_PROVIDER=nvidia
+  NVIDIA_API_KEY=your-nvidia-key-here
+  NVIDIA_MODEL=nvidia/nemotron-3.5-lightning-30b-a3b
+  NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
+  NVIDIA_ENABLE_THINKING=false
+  ```
+* **Local Models (Hugging Face)**:
+  ```ini
+  EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+  RERANKER_MODEL=BAAI/bge-reranker-base
+  ```
 
-## 2. Run
+---
+
+## 3. Usage
+
+### 1. Ingest Documents into Vector Store
+Rebuilds the ChromaDB vector index from `data/raw/` using `data/manifest.yaml`:
 
 ```bash
-python ingest.py              # builds the index in ./chroma_db  (re-run whenever data/raw changes)
-python ask.py                 # chat in the terminal, as an "employee"
-python ask.py --role hr       # HR can also see confidential files (employee profiles)
-python ask.py --include-archived   # also search old policy versions (e.g. Leave Policy v1)
-python ask.py -q "How many casual leave days do I get?"
+python ingest.py
+```
+*(Use `python ingest.py --dry-run` to validate document parsing, schema checks, and chunk counts without downloading embedding models).*
+
+### 2. Interactive Terminal CLI (`ask.py`)
+Ask questions from the command line under different roles and parameters:
+
+```bash
+# Ask as an employee (default)
+python ask.py -q "What is the probation period for full-time employees?"
+
+# Ask as HR (accesses confidential records and employee profiles)
+python ask.py --role hr -q "List all employees in the Engineering department"
+
+# Search including archived policy versions
+python ask.py --include-archived -q "How did annual leave entitlement change from v1 to v2?"
 ```
 
-### Web UI (Streamlit)
+### 3. Streamlit Web UI (`app.py`)
+Launch the complete interactive web interface:
 
 ```bash
-pip install -r requirements.txt   # adds streamlit
 streamlit run app.py
 ```
 
-Pages: **Assistant** (chat with cited-source cards, 👍/👎 feedback, role and archived-policy controls, concise/detailed
-style under Settings), **Model Evaluation** (real numbers from `logs/query_log.jsonl` only) and **About**. The role is a
-dropdown and is simulated, not a login. The models load once when the app starts, so questions after the first skip the
-model-loading time you see with `ask.py`. Conversations live in the browser session only.
+The Streamlit UI includes:
+* **Assistant Page**: Chat interface with clickable citation source cards, role switcher (`employee` vs `hr`), style toggles (`concise` vs `detailed`), and response feedback buttons (👍 / 👎).
+* **Model Evaluation Page**: Live performance dashboards reading `logs/query_log.jsonl`, displaying real response-class distributions, check pass rates, latency breakdowns (Retrieval vs Generation), and token consumption.
+* **About Page**: Architecture breakdown, document inventory, and role permission matrices.
 
-The first `ingest.py` / `ask.py` run downloads two models from Hugging Face (embeddings ~90 MB,
-reranker ~1 GB). After that it works offline except for the LLM call.
+---
 
-`python ingest.py --dry-run` checks your data (loading, validation, duplicates, chunk count) without
-downloading any model.
-
-**Answer length.** The default style is `concise`: short, plain-language answers (about 120 words or less unless the
-question needs a list or comparison). After every answer `ask.py` prints a `[usage]` line with input/output tokens,
-number of sources and time. Simple questions send 6 source chunks to the model; multi-part, "list all" and
-"compare" questions send up to 12.
-
-**Flags go on the command line, not inside the question.** Typing "Run with: python ask.py --role hr" into the
-question does nothing. Start the program that way instead (`python ask.py --role hr`). Each question's role is saved in
-`logs/query_log.jsonl`, so you can check which role an answer was produced with.
-
-## 3. Project layout
+## 4. Project Layout
 
 ```
-hr-rag/
-├── .env.example          template for your secrets (copy to .env)
+Enterprise-HR-RAG-Assistant/
+├── .env.example                # Template for environment variables and API keys
+├── .gitignore                  # Git ignore rules (protects .env, chroma_db, and logs)
+├── app.py                      # Interactive Streamlit Web UI
+├── ask.py                      # Terminal CLI query interface
+├── ingest.py                   # Ingestion pipeline: extracts, validates, and indexes chunks
+├── requirements.txt            # Project dependencies
 ├── data/
-│   ├── raw/              the 15 source files
-│   └── manifest.yaml     per-file access level, version, archived/excluded   <-- edit this, not code
+│   ├── raw/                    # Raw HR documents (PDF, DOCX, CSV, JSON, XLSX, HTML, TXT)
+│   └── manifest.yaml           # Metadata, access levels, versioning, and exclusion rules
 ├── hr_rag/
-│   ├── config.py         all settings; reads .env
-│   ├── loaders.py        PDF / DOCX / TXT / HTML / CSV / JSON / XLSX -> Documents
-│   ├── manifest.py       reads manifest.yaml
-│   ├── cleaning.py       text cleaning, validation, duplicate removal
-│   ├── enrichment.py     summary / keywords / tags
-│   ├── chunking.py       splitting into chunks
-│   ├── vectorstore.py    embeddings + Chroma
-│   ├── ingestion.py      runs the whole data-preparation pipeline
-│   ├── retrieval.py      query rewrite, permissions, hybrid search, rerank, context
-│   ├── generation.py     prompts + Claude / NVIDIA provider layer
-│   ├── guardrails.py     access + citation checks
-│   ├── evaluation.py     grounding scores, feedback, improvement hints
-│   ├── ui_data.py        log reading, summaries and safe error messages for the UI
-│   └── pipeline.py       RAGPipeline.ask(): ties query time together
-├── ingest.py             command: build the index
-├── ask.py                command: ask questions
-├── app.py                Streamlit web UI:  streamlit run app.py
-├── tests/                88 offline tests (no models, no API calls):  python -m pytest
-├── notebooks/            your original notebooks, kept for reference
-├── chroma_db/            generated index (git-ignored)
-└── logs/                 ingestion report, query log, feedback (git-ignored)
+│   ├── config.py               # Pydantic configuration and environment loader
+│   ├── loaders.py              # Multi-format document loaders and structural parsers
+│   ├── manifest.py             # Manifest loader and schema validator
+│   ├── cleaning.py             # Text sanitization, deduplication, and anomaly checks
+│   ├── enrichment.py           # Metadata tagging, abbreviation expansion, and summarization
+│   ├── chunking.py             # Section-aware chunking with document headers
+│   ├── vectorstore.py          # ChromaDB collection management and embedding interface
+│   ├── ingestion.py            # End-to-end ingestion pipeline runner
+│   ├── retrieval.py            # Hybrid search (Dense + BM25), RRF fusion, and Cross-Encoder reranking
+│   ├── generation.py           # Provider LLM client, prompts, and anti-substitution rules
+│   ├── request_guard.py        # Injection detection, DAN mode, and tag-escape interceptor
+│   ├── scope.py                # Scope guard for department-head approval vs directory access
+│   ├── premise_guard.py        # False-premise, invalid unit, and statement assertions guard
+│   ├── domain_guard.py         # Out-of-domain query classification and refusal
+│   ├── roster.py               # Deterministic department headcount and roster engine
+│   ├── numeric_gate.py         # Numeric grounding and claim verification
+│   ├── citations.py            # Verifiable citation extractor and card formatter
+│   ├── grounding.py            # Lexical and semantic cross-source grounding verifier
+│   ├── assessment.py           # Response class assessment and contract auditor
+│   ├── guardrails.py           # Composite verification orchestrator
+│   ├── streaming.py            # SSE token streaming generator
+│   ├── pipeline.py             # RAGPipeline: central controller tying all stages together
+│   └── ui_data.py              # Log aggregation, KPI calculation, and role-based log redaction
+├── scripts/
+│   ├── calibrate_relevance.py  # Utility to calibrate reranker thresholds
+│   └── v1_acceptance.py        # Acceptance benchmark suite for release validation
+└── tests/                      # 1,367 automated offline unit, integration, and security tests
 ```
 
-## 4. How multiple files are handled
+---
 
-| Concern | What happens |
-|---|---|
-| Different formats | One loader per type. Prose is split at headings; CSV/JSON give one chunk-source per record; Excel gives one per sheet. |
-| Who may see what | `manifest.yaml` sets `access_level` per file. `employee_profiles.json` is `confidential` (HR only). The filter runs **inside the search**, so unauthorized text never reaches the LLM. |
-| Old policy versions | `leave_policy_v1.docx` is `is_current: false`. It is hidden unless you pass `--include-archived`, and answers label it "ARCHIVED". |
-| Duplicates | `duplicate_leave_policy.docx` is `exclude: true`. Exact-text duplicates are also removed automatically (current files win over archived ones). |
-| Bad records | `incomplete_employee_record.json` fails validation (no employee ID). Because it exists to be asked about, `manifest.yaml` has `keep_if_invalid: true`: it is indexed, marked `validation_status=invalid`, and HR-only. Other invalid records are skipped. See `logs/ingestion_report.json`. |
-| New file added | Put it in `data/raw/`, add an entry in `manifest.yaml`, run `python ingest.py`. A file missing from the manifest is treated as `confidential` until you classify it. |
+## 5. Security & Invariant Defenses
 
-## 5. What changed from your notebooks (and why)
+| Barrier Layer | Mechanism | Protection |
+|---|---|---|
+| **Phase 1 RBAC** | Hard metadata filtering in ChromaDB (`where={"access_level": ...}`) and BM25 index | Confidential employee files (PII, salaries, ratings) can never be retrieved by the `employee` role. |
+| **Request Guard** | Regex & token inspection | Blocks jailbreaks (`DAN mode`), prompt exfiltration, Base64-wrapped payloads, and `</context>` tag escapes. |
+| **Scope Guard** | Semantic intention matching | Permits policy inquiries referencing "department head approval" for employees while strictly blocking personal employee directory lookups. |
+| **Premise Guard** | Factual assertion & unit matcher | Prevents the model from accepting or validating false user premises (e.g. invalid days of leave) or declarative non-question assertions. |
+| **Deterministic Roster** | Exact directory aggregation | Eliminates hallucinations and incomplete counting for department rosters and team member listings. |
+| **Anti-Substitution** | Generation-level accuracy rule | Ensures unmentioned benefits (e.g., pet bereavement, gym subsidies) are explicitly reported as absent rather than substituted with related policies. |
+| **Numeric Gate** | Regex & number-span verification | Flags or withholds any response containing numerical quantities not grounded in source chunks. |
 
-* **No more `unstructured`.** It is a heavy install (needs extra system tools on Windows). Sections are now
-  found with `pypdf`, `python-docx`, `openpyxl` and `beautifulsoup4`. If you prefer Unstructured, only `loaders.py` changes.
-* **Keyword search bug fixed.** LangChain's BM25 default does not lower-case or strip punctuation, while your
-  query was lower-cased, so capitalised words never matched. `retrieval.tokenize` fixes this (plus simple plural matching).
-* **Abbreviation expansion keeps the abbreviation** (`wfh` -> `wfh (work from home)`), otherwise "HR Manager" can no longer be matched.
-* **Hard-coded filter removed.** The notebook filtered on `document_type == "employee_handbook"`; with many files that would hide everything else.
-* **Chunk headers.** Each chunk starts with `[Document title | Section]`, so a chunk like "Annual Leave: 20 days" knows which policy it belongs to.
-* **Tables keep their column names** (`Leave Type: Annual Leave | V1: 18 Days | V2: 20 Days`) and dates get month names, so "holidays in January" can match `2025-01-14`.
-* **Running page headers/footers and table-of-contents lines are removed** from PDFs.
-* **Context building** stops adding sources when the character budget is full, so citations never point to text the model did not see.
-* **Semantic grounding** compares the answer with each source separately (the MiniLM model only reads ~256 tokens, so one big context was silently cut off).
-* **Answer checks.** The quality check now also flags numbers in the answer that appear in none of the sources
-  (for example an invented "26 weeks"). Multi-part questions are split and each part is searched separately.
-* **Index rebuilds are clean.** `ingest.py` wipes the old collection first so deleted files cannot linger.
+---
 
-## 6. Known limitations
+## 6. Testing & Quality Verification
 
-Tested end to end with NVIDIA Nemotron 3.5 Lightning (thinking off) on the 15-file dataset. Facts that sit in one
-place (policy numbers, job requirements, validation errors, onboarding tasks, contact details) are answered
-accurately and with citations. Known weak spots:
+Run the complete test suite:
 
-* **Counting and totals are unreliable.** "How many employees are in Data Science?" needs all 30 directory rows, but
-  retrieval returns only a few passages, so the assistant can report a wrong count (the directory has 5 Data Science
-  rows, the department sheet says 4, and the assistant answered 2).
-* **"List all N items" questions can come back incomplete or padded.** Always check the count against the document.
-* **The quality check measures grounding, not completeness.** A score of 100% does not prove an answer is complete or
-  that the model's own explanations (for example why a date is invalid) are right.
-* **Roles are simulated.** `--role hr` is only for learning. A real app must take the role from a login system.
-* **Quality thresholds** in `config.py` are teaching values. Tune them on real questions.
-* **Costs:** every question makes one LLM call, billed to your API key.
+```bash
+# Run all 1,367 offline tests
+python -m pytest
 
-## 7. Data
+# Run specific security invariant suites
+python -m pytest tests/test_v1_security_invariants.py
+python -m pytest tests/test_scope_department_head.py
+python -m pytest tests/test_premise_guard.py
+python -m pytest tests/test_roster.py
+```
 
-All files in `data/raw/` are synthetic training data (no real people or company). Replace them with your own
-documents and update `data/manifest.yaml` to use the project on other material.
+---
+
+## 7. Operational Notes & Limitations
+
+> **Portfolio/Demonstration Authentication:** V1.1 uses a simulated Employee/HR role selector so the complete RBAC behavior can be demonstrated and evaluated from both perspectives. This role selector is not a production authentication mechanism. A production deployment would derive the user's identity and authorization server-side through an authenticated identity provider.
+
+* **Independent Question Context**: Each request is evaluated independently to maximize grounding precision; multi-turn conversational memory is isolated per query.
+* **Corpus Ingestion**: The index must be rebuilt (`python ingest.py`) whenever files in `data/raw/` or configurations in `data/manifest.yaml` are updated.
+
+---
+
+## 8. V1.2 — Production Hardening
+
+Planned improvements:
+
+- **Authentication-based RBAC** — replace the simulated role selector with authenticated identity and server-side authorization.
+- **LLM timeout and retry handling** — prevent provider stalls from leaving requests waiting indefinitely.
+- **Sensitive-log protection** — improve protection, access control, and retention of employee queries and potentially sensitive logs.
+- **Enhanced observability** — record provider/model information and additional operational metadata for troubleshooting.
+- **Relevance-gate calibration** — reduce unnecessary refusals on legitimate HR questions using real evaluation data.
+- **Controlled pilot monitoring** — monitor refusal rates, latency, errors, and other production-quality signals during a limited rollout.
+
+---
+
+## 9. V2 — Next-Generation Enterprise Assistant
+
+Planned improvements:
+
+1. **Real authentication and authorization**
+   - Login-based identity.
+   - Server-side role assignment.
+   - Stronger enterprise RBAC.
+
+2. **Better evaluator calibration**
+   - More reliable evaluation thresholds.
+   - Reduced false positives and false negatives.
+
+3. **Separate scoring by response class**
+   - `NORMAL_GROUNDED`
+   - `NOT_FOUND`
+   - `OUT_OF_DOMAIN`
+   - `SECURITY_REFUSAL`
+   - `ACCESS_RESTRICTED`
+   - Other applicable response classes.
+
+4. **Better semantic grounding measurement**
+   - Evaluate whether the meaning of an answer is actually supported by retrieved sources, not only whether words overlap.
+
+5. **Better citation-support measurement**
+   - Verify that a cited source actually supports the claim made in the answer.
+
+6. **Larger benchmark dataset**
+   - More HR documents.
+   - More employees and departments.
+   - More normal, adversarial, out-of-corpus, and edge-case questions.
+   - Broader evaluation coverage.
+
+7. **Stronger security**
+   - Additional adversarial testing.
+   - Stronger prompt-injection defenses.
+   - Expanded authorization and sensitive-data protections.
+
+8. **Lower latency**
+   - Optimize retrieval and reranking.
+   - Reduce unnecessary LLM calls.
+   - Improve startup/model initialization time.
+   - Expand deterministic paths where appropriate.
+
+9. **Controlled conversational context**
+   - Introduce multi-turn context while preserving grounding, authorization, and security boundaries.

@@ -23,7 +23,10 @@ def make_rig(store, embeddings, fake_reranker, cfg):
             llm_calls.append(user)
             return answer
 
-        pipeline = RAGPipeline(dataclasses.replace(cfg, injection_guard_mode=mode), embeddings=embeddings,
+        # The premise guard (V1.1) would decline the amendment text on its own as a statement that asks nothing, so it is
+        # switched off here: these tests check the INJECTION guard's modes in isolation.
+        pipeline = RAGPipeline(dataclasses.replace(cfg, injection_guard_mode=mode, premise_guard_mode="off"),
+                               embeddings=embeddings,
                                vector_store=store, reranker=fake_reranker, llm=fake_llm)
         original = pipeline.retriever.retrieve
 

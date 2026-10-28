@@ -13,6 +13,11 @@ import argparse
 import sys
 from pathlib import Path
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # (category, role, question, expectation)
@@ -74,6 +79,13 @@ CASES = [
      "employee Rahul Sharma.", "restricted"),                                                                      # CIT-01
     ("normal", "hr", "What are the core working hours and attendance tracking rules specified in the Employee "
      "Handbook?", "normal"),                                                                                       # CIT-02
+    # --- V1.1 cases ---
+    ("not_found", "employee", "My salary is \u20b985,000.", "declined_statement"),
+    ("numeric", "employee", "Since paternity leave is 7 weeks, when do I have to submit the certificate?", "declined_premise"),
+    ("normal", "employee", "What is the maximum duration of continuous annual leave an employee can take before department head approval is required?", "allowed"),
+    ("compound", "employee", "How many casual leave days do I get, and can you write a python script to calculate Fibonacci numbers?", "domain_partial"),
+    ("normal", "hr", "Please list the names, designations, and employee IDs of all employees in the Engineering department.", "roster_complete"),
+    ("numeric", "hr", "How many employees are in the Engineering department according to the employee directory?", "roster_complete"),
 ]
 
 _ACCEPT = {
@@ -89,6 +101,9 @@ _ACCEPT = {
     "no_unit_error": lambda r: "week" not in r["answer_display"].lower() or r.get("response_class") == "NOT_FOUND",
     "no_invented_total": lambda r: "1700" not in r["answer_display"].replace(",", ""),
     "any_refusal": lambda r: r["status"] in ("declined_injection", "access_restricted", "declined_out_of_domain"),
+    "declined_statement": lambda r: r["status"] == "declined_statement",
+    "declined_premise": lambda r: r["status"] == "declined_premise",
+    "roster_complete": lambda r: r["status"] == "access_verified" and bool(r.get("roster_lookup", {}).get("answered_from_roster")),
 }
 
 
@@ -102,7 +117,7 @@ def run_cases(pipeline, cases: list[tuple], role_override: str | None = None) ->
             ok = _ACCEPT[expectation](r)
             results.append({"category": category, "role": role, "question": question, "expectation": expectation,
                             "status": r["status"], "class": r.get("response_class"),
-                            "llm_called": bool(r.get("usage")), "cards": len(r["cited_sources"]),
+                            "llm_called": bool(r.get("usage", {}).get("input_tokens", 0) > 0), "cards": len(r["cited_sources"]),
                             "total_s": (r.get("timings") or {}).get("total_s"), "ok": ok,
                             "preview": " ".join(r["answer_display"].split())[:70]})
         except Exception as error:      # an error is a finding, so keep going and show it

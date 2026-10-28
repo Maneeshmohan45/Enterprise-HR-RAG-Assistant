@@ -250,6 +250,13 @@ def test_previous_messages_are_not_visible_after_the_switch(app):
     assert "unmistakable" not in page_text(app) and app.session_state["conversations"][0]["messages"] == []
 
 
+def test_declined_statement_and_premise_render_as_info(app):
+    app.run()
+    ask(app, "My salary is \u20b985,000.")
+    assert any("I can't confirm statements about pay" in i.value for i in app.info)
+    assert not any("I can't confirm statements about pay" in m.value for m in app.markdown)
+
+
 def test_previous_sources_and_citations_are_cleared(app):
     app.run()
     ask(app, LEAVE_Q)
