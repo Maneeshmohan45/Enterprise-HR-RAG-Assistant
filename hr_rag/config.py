@@ -18,17 +18,41 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(PROJECT_ROOT / ".env")
 
 
+def get_secret_or_env(key: str, default: str = "") -> str:
+    """Read a string setting from Streamlit secrets (if available) or os.environ.
+
+    Streamlit secrets take precedence when running in Streamlit Cloud, followed by
+    real environment variables / local .env file.
+    """
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets") and key in st.secrets:
+            val = str(st.secrets[key]).strip()
+            if val:
+                return val
+    except Exception:
+        pass
+    val = os.getenv(key, "").strip()
+    return val if val else default
+
+
 def sync_streamlit_secrets() -> None:
     """If running inside Streamlit with secrets configured, copy them to os.environ.
 
-    Preserves any existing environment variables. Catches StreamlitSecretNotFoundError.
+    Preserves any non-empty environment variables. Catches StreamlitSecretNotFoundError.
     """
     try:
         import streamlit as st
         if hasattr(st, "secrets"):
             for k, v in st.secrets.items():
-                if isinstance(v, (str, int, float, bool)) and k not in os.environ:
-                    os.environ[k] = str(v)
+                if isinstance(v, bool):
+                    val = "true" if v else "false"
+                elif isinstance(v, (str, int, float)):
+                    val = str(v).strip()
+                else:
+                    continue
+                if not os.environ.get(k, "").strip():
+                    os.environ[k] = val
     except Exception:
         pass
 
@@ -39,11 +63,11 @@ sync_streamlit_secrets()
 def _resolve_llm_provider() -> str:
     """Return the configured LLM provider, auto-detecting based on available keys if not explicit."""
     sync_streamlit_secrets()
-    explicit = os.getenv("LLM_PROVIDER", "").strip().lower()
+    explicit = get_secret_or_env("LLM_PROVIDER", "").strip().lower()
     if explicit in ("claude", "nvidia"):
         return explicit
-    has_nvidia = bool(os.getenv("NVIDIA_API_KEY", "").strip())
-    has_claude = bool(os.getenv("ANTHROPIC_API_KEY", "").strip())
+    has_nvidia = bool(get_secret_or_env("NVIDIA_API_KEY"))
+    has_claude = bool(get_secret_or_env("ANTHROPIC_API_KEY"))
     if has_nvidia and not has_claude:
         return "nvidia"
     if has_claude and not has_nvidia:
@@ -52,12 +76,11 @@ def _resolve_llm_provider() -> str:
 
 
 def _optional_float(name: str, default: float | None) -> float | None:
-    """Read a float from the environment. An empty value means 'not set'."""
-    raw = os.getenv(name)
-    if raw is None:
+    """Read a float from secrets/environment. An empty value means 'not set'."""
+    raw = get_secret_or_env(name)
+    if not raw:
         return default
-    raw = raw.strip()
-    return float(raw) if raw else None
+    return float(raw)
 
 
 @dataclass(frozen=True)
@@ -200,15 +223,7 @@ def get_api_key(provider: str | None = None) -> str:
     env_name = {"claude": "ANTHROPIC_API_KEY", "nvidia": "NVIDIA_API_KEY"}.get(provider)
     if env_name is None:
         raise ValueError(f"Unsupported LLM_PROVIDER='{provider}'. Use 'claude' or 'nvidia'.")
-    key = os.getenv(env_name, "").strip()
-    if not key:
-        try:
-            import streamlit as st
-            if hasattr(st, "secrets") and env_name in st.secrets and str(st.secrets[env_name]).strip():
-                key = str(st.secrets[env_name]).strip()
-                os.environ[env_name] = key
-        except Exception:
-            pass
+    key = get_secret_or_env(env_name)
     if not key:
         raise ValueError(
             f"{env_name} is missing. Copy .env.example to .env and add your own key."

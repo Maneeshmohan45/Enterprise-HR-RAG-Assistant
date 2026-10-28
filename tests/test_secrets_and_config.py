@@ -2,7 +2,8 @@ import os
 from unittest.mock import patch, MagicMock
 import pytest
 
-from hr_rag.config import Settings, get_api_key, sync_streamlit_secrets, _resolve_llm_provider
+from hr_rag.config import (Settings, get_api_key, get_secret_or_env, sync_streamlit_secrets,
+                           _resolve_llm_provider)
 from hr_rag.generation import _effective_provider
 
 
@@ -81,3 +82,30 @@ def test_generation_effective_provider_fallback(monkeypatch):
     
     cfg = Settings(llm_provider="claude")
     assert _effective_provider(cfg) == "nvidia"
+
+
+def test_streamlit_cloud_exact_configuration_reproduction(monkeypatch):
+    """Exact reproduction of Streamlit Cloud:
+    - NVIDIA_API_KEY is in st.secrets only (NOT in os.environ)
+    - ANTHROPIC_API_KEY is absent
+    - LLM_PROVIDER is absent
+    Verifies that Settings, get_api_key, and _effective_provider all resolve to nvidia.
+    """
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("NVIDIA_API_KEY", raising=False)
+
+    mock_st = MagicMock()
+    mock_st.secrets = {
+        "NVIDIA_API_KEY": "nvapi-test-cloud-key-9999",
+        "NVIDIA_MODEL": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "NVIDIA_BASE_URL": "https://integrate.api.nvidia.com/v1",
+        "NVIDIA_ENABLE_THINKING": False,
+    }
+
+    with patch.dict("sys.modules", {"streamlit": mock_st}):
+        cfg = Settings()
+        assert cfg.llm_provider == "nvidia"
+        assert _effective_provider(cfg) == "nvidia"
+        assert get_api_key(cfg.llm_provider) == "nvapi-test-cloud-key-9999"
+        assert get_api_key() == "nvapi-test-cloud-key-9999"

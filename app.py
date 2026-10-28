@@ -16,7 +16,7 @@ import streamlit as st
 
 from hr_rag import evaluation
 from hr_rag.streaming import visible_text
-from hr_rag.config import ROLE_ACCESS, get_api_key, settings, sync_streamlit_secrets
+from hr_rag.config import ROLE_ACCESS, Settings, get_api_key, get_secret_or_env, settings, sync_streamlit_secrets
 
 sync_streamlit_secrets()
 from hr_rag.manifest import load_manifest
@@ -204,6 +204,7 @@ hr {margin:.6rem 0 !important;}
 # ---------------------------------------------------------------------------
 @st.cache_resource(show_spinner="Loading search models (first start only)...")
 def load_pipeline():
+    sync_streamlit_secrets()
     from langchain_core.documents import Document
 
     from hr_rag.pipeline import RAGPipeline
@@ -238,7 +239,7 @@ def get_pipeline():
 
 def effective_provider() -> str:
     provider = settings.llm_provider
-    if provider == "claude" and not os.getenv("ANTHROPIC_API_KEY") and os.getenv("NVIDIA_API_KEY"):
+    if provider == "claude" and not get_secret_or_env("ANTHROPIC_API_KEY") and get_secret_or_env("NVIDIA_API_KEY"):
         return "nvidia"
     return provider
 

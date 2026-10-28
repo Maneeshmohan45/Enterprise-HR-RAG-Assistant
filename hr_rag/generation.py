@@ -5,7 +5,7 @@ import os
 import re
 
 from . import citations
-from .config import Settings, get_api_key, settings as default_settings
+from .config import Settings, get_api_key, get_secret_or_env, settings as default_settings
 
 # ---------------------------------------------------------------------------
 # Prompts. The ACCURACY rules are the same for every style; only the STYLE changes.
@@ -263,7 +263,7 @@ _STREAM_PROVIDERS = {"claude": _stream_claude, "nvidia": _stream_nvidia}
 
 def _effective_provider(cfg: Settings) -> str:
     provider = cfg.llm_provider
-    if provider == "claude" and not os.getenv("ANTHROPIC_API_KEY") and os.getenv("NVIDIA_API_KEY"):
+    if provider == "claude" and not get_secret_or_env("ANTHROPIC_API_KEY") and get_secret_or_env("NVIDIA_API_KEY"):
         return "nvidia"
     return provider
 
