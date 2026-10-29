@@ -95,7 +95,8 @@ class RAGPipeline:
                 "request_signals": list(guard.signals), "injection_action": None, **extra}
 
     def _withheld(self, base: dict, issues: list[dict], mode: str, retrieval_s: float, generation_s: float,
-                  input_tokens: int, output_tokens: int, context_chunks: int, log: bool) -> dict:
+                  input_tokens: int, output_tokens: int, context_chunks: int, log: bool,
+                  diagnostic_sources: list[dict] | None = None) -> dict:
         """The generated answer is discarded: only the fixed message is returned, with no sources."""
         return self._finish_declined({
             **base, "answer": INSUFFICIENT_INFO_MESSAGE, "answer_display": INSUFFICIENT_INFO_MESSAGE,
@@ -104,6 +105,12 @@ class RAGPipeline:
             "usage": {"input_tokens": input_tokens, "output_tokens": output_tokens, "estimated": True,
                       "context_chunks": context_chunks, "answer_discarded": True},
             "numeric_gate": {"mode": mode, "issues": issues},
+            "diagnostics": {
+                "stage": "numeric_gate",
+                "rejection_reason": "unsupported_figures_or_units",
+                "source_files": [s["file_name"] for s in (diagnostic_sources or [])],
+                "retrieved_chunk_count": len(diagnostic_sources or []),
+            },
             "timings": {"retrieval_s": round(retrieval_s, 3), "generation_s": round(generation_s, 3),
                         "total_s": round(retrieval_s + generation_s, 3)}}, log, llm_called=True)
 
@@ -285,7 +292,8 @@ class RAGPipeline:
         except StreamAborted as stop:
             return self._withheld(base, stop.issues, numeric_mode, retrieval_s, time.perf_counter() - gen_started,
                                   estimate_tokens(system_prompt + user_prompt),
-                                  estimate_tokens(stream_guard.raw if stream_guard else ""), len(sources), log)
+                                  estimate_tokens(stream_guard.raw if stream_guard else ""), len(sources), log,
+                                  diagnostic_sources=sources)
         generation_s = time.perf_counter() - gen_started
         answer, usage = raw if isinstance(raw, tuple) else (raw, {})
         answer = answer.strip()
@@ -297,7 +305,7 @@ class RAGPipeline:
         if numeric["issues"] and numeric_mode == "enforce":
             return self._withheld(base, numeric["issues"], numeric_mode, retrieval_s, generation_s,
                                   estimate_tokens(system_prompt + user_prompt), estimate_tokens(answer),
-                                  len(sources), log)
+                                  len(sources), log, diagnostic_sources=sources)
         if on_delta is not None and not streaming:
             on_delta(answer)             # a model that cannot stream delivers the whole answer at once
         usage = {

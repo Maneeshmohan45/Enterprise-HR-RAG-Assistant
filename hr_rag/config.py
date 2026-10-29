@@ -132,7 +132,7 @@ class Settings:
         default_factory=lambda: os.getenv("ANTHROPIC_MODEL", "claude-haiku-5-5")
     )
     nvidia_model: str = field(
-        default_factory=lambda: os.getenv("NVIDIA_MODEL", "meta/llama-3.1-8b-instruct")
+        default_factory=lambda: os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3.5-lightning-30b-a3b")
     )
     nvidia_base_url: str = field(
         default_factory=lambda: os.getenv(
@@ -142,7 +142,7 @@ class Settings:
     # "false" turns thinking off for NVIDIA reasoning models, "true" turns it on,
     # empty = do not send the option (needed for models that do not support it).
     nvidia_enable_thinking: str = field(
-        default_factory=lambda: os.getenv("NVIDIA_ENABLE_THINKING", "").strip().lower()
+        default_factory=lambda: os.getenv("NVIDIA_ENABLE_THINKING", "false").strip().lower()
     )
     llm_temperature: float | None = field(
         default_factory=lambda: _optional_float("LLM_TEMPERATURE", 0.2)

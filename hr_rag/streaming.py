@@ -83,11 +83,20 @@ class NumericStreamGuard:
             pending = self.raw[self._released:]
             if not pending:
                 return
-            scan = _LIST_NUMBER.sub(lambda m: " " * len(m.group()), citations.blank_markers(pending))
+            blanked = citations.blank_markers(self.raw)[self._released:]
+            scan = _LIST_NUMBER.sub(lambda m: " " * len(m.group()), blanked)
             # (a marker's digits and a list's numbering are not numbers to check)
+            hold = 0
+            if not final:
+                partial = citations.PARTIAL_TAIL.search(self.raw)
+                if partial and partial.start() >= self._released:
+                    hold = len(self.raw) - partial.start()
+
             risky = _NUMBER_TOKEN.search(scan)
             if risky is None:
-                self._emit(len(pending))
+                emit_len = len(pending) - hold
+                if emit_len > 0:
+                    self._emit(emit_len)
                 return
             starts = [m.end() for m in _SENTENCE_START.finditer(scan, 0, risky.start())]
             sentence_start = starts[-1] if starts else 0
@@ -97,10 +106,11 @@ class NumericStreamGuard:
             end = _SENTENCE_END.search(scan, risky.start())
             if end is None and not final:
                 if risky.start():
-                    self._emit(risky.start())                   # the words before the number are safe
+                    self._emit(min(risky.start(), len(pending) - hold))
                 return
             sentence = pending[:end.end() if end else len(pending)]
-            found = self._check(sentence)
+            clean_sentence = citations.blank_markers(self.raw[:self._released + (end.end() if end else len(pending))])[self._released:]
+            found = self._check(clean_sentence)
             if found:
                 self.issues.extend(found)
                 if self._enforce:

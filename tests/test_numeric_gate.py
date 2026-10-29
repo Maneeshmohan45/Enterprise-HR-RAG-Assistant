@@ -290,3 +290,45 @@ def test_a_stream_aborted_by_the_gate_is_not_reported_as_a_provider_failure(make
     rig = make_rig(stream_pieces=["It is 99 days."])
     r = rig.ask(PATERNITY_Q, {"role": "employee"}, log=False, on_delta=lambda piece: None)
     assert r["status"] == "declined_ungrounded"          # not an LLMError
+
+
+def test_streamed_citation_split_across_tokens_does_not_abort_stream(make_rig):
+    """Citation markers like [S1] streamed token-by-token must not be flagged as ungrounded digits."""
+    # Chunk text has 20 days and 10 days, but NOT the number 1
+    rig = make_rig(
+        stream_pieces=["You get 20 days of annual leave", " per calendar year.", " [", "S", "1", "]"],
+        chunk_text="Annual leave is 20 days per calendar year. Carry forward limit is 10 days.",
+    )
+    r = rig.ask("annual leave?", {"role": "employee"}, log=False, on_delta=rig.record["deltas"].append)
+    assert r["status"] == "access_verified"
+    assert r["numeric_gate"]["issues"] == []
+    assert "".join(rig.record["deltas"]) == "You get 20 days of annual leave per calendar year. [S1]"
+    assert r["answer_display"] == "You get 20 days of annual leave per calendar year."
+
+
+def test_hr_role_rohan_verma_streamed_citation_is_not_withheld(make_rig):
+    """HR role accessing Rohan Verma record with streamed citations must not be falsely withheld."""
+    rohan_chunk = (
+        "employee_id: APS003\nemployee_name: Rohan Verma\ndepartment: Engineering\n"
+        "designation: Software Engineer\nemployment_type: Permanent\nwork_location: Hyderabad"
+    )
+    rig = make_rig(
+        stream_pieces=["Rohan Verma is a Software Engineer", " in Engineering", " [", "S", "1", "]"],
+        chunk_text=rohan_chunk,
+    )
+    r = rig.ask("Tell me about Rohan Verma", {"role": "hr"}, log=False, on_delta=rig.record["deltas"].append)
+    assert r["status"] == "access_verified"
+    assert r["numeric_gate"]["issues"] == []
+    assert r["answer_display"] == "Rohan Verma is a Software Engineer in Engineering"
+
+
+def test_genuine_unanswerable_or_invented_figures_remain_withheld(make_rig):
+    """Fail-closed invariant: genuinely unsupported or hallucinated figures still get withheld."""
+    rig = make_rig(
+        stream_pieces=["Employees are entitled to ", "99 days", " of leave [S1]."],
+        chunk_text="Annual leave is 20 days per calendar year.",
+    )
+    r = rig.ask("annual leave?", {"role": "employee"}, log=False, on_delta=rig.record["deltas"].append)
+    assert r["status"] == "declined_ungrounded"
+    assert r["answer"] == INSUFFICIENT_INFO_MESSAGE
+    assert r["numeric_gate"]["issues"] == [{"number": "99", "unit": None, "reason": "not_in_sources"}]

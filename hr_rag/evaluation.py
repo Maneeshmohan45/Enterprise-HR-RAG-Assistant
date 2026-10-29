@@ -151,6 +151,7 @@ def log_query(response: dict, cfg: Settings = default_settings) -> None:
         "domain_action": response.get("domain_action"),
         "relevance_gate": response.get("relevance_gate"),
         "numeric_gate": response.get("numeric_gate"),
+        "diagnostics": response.get("diagnostics"),
         "statement_action": response.get("statement_action"),
         "roster_lookup": response.get("roster_lookup"),
         "premise_conflicts": response.get("premise_conflicts"),
