@@ -332,3 +332,16 @@ def test_genuine_unanswerable_or_invented_figures_remain_withheld(make_rig):
     assert r["status"] == "declined_ungrounded"
     assert r["answer"] == INSUFFICIENT_INFO_MESSAGE
     assert r["numeric_gate"]["issues"] == [{"number": "99", "unit": None, "reason": "not_in_sources"}]
+
+
+def test_streamed_employee_id_split_across_tokens_does_not_abort_stream(make_rig):
+    """Employee IDs such as APS003 or APS027 split across stream pieces must not trigger false positive number checks."""
+    rohan_chunk = "employee_id: APS003\nemployee_name: Rohan Verma\ndepartment: Engineering\ndesignation: Software Engineer"
+    rig = make_rig(
+        stream_pieces=["Rohan Verma is a Software Engineer with employee ID (", "APS", "00", "3", ")", " in Engineering", " [S1]."],
+        chunk_text=rohan_chunk,
+    )
+    r = rig.ask("Tell me about Rohan Verma", {"role": "hr"}, log=False, on_delta=rig.record["deltas"].append)
+    assert r["status"] == "access_verified"
+    assert r["numeric_gate"]["issues"] == []
+    assert r["answer_display"] == "Rohan Verma is a Software Engineer with employee ID (APS003) in Engineering."

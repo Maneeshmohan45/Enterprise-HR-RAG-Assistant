@@ -109,7 +109,9 @@ class NumericStreamGuard:
                     self._emit(min(risky.start(), len(pending) - hold))
                 return
             sentence = pending[:end.end() if end else len(pending)]
-            clean_sentence = citations.blank_markers(self.raw[:self._released + (end.end() if end else len(pending))])[self._released:]
+            prefix_match = re.search(r"\S+$", self.raw[:self._released])
+            prefix = prefix_match.group() if prefix_match else ""
+            clean_sentence = prefix + citations.blank_markers(self.raw[:self._released + (end.end() if end else len(pending))])[self._released:]
             found = self._check(clean_sentence)
             if found:
                 self.issues.extend(found)
