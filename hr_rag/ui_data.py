@@ -133,11 +133,19 @@ def query_table_rows(rows: list[dict], show_questions: bool, limit: int = 200) -
     for r in reversed(rows[-limit:]):
         usage, timings = r.get("usage") or {}, r.get("timings") or {}
         question = " ".join(str(r.get("question", "")).split())
+        gate = r.get("numeric_gate") or {}
+        diag = r.get("diagnostics") or {}
+        diagnostics = (
+            ", ".join(f"{iss.get('number')}:{iss.get('reason')}" for iss in gate.get("issues", []))
+            if gate.get("issues")
+            else (diag.get("rejection_reason") or "")
+        )
         table.append({
             "Time": str(r.get("time", "")).replace("T", " "),
             "Role": r.get("role", ""),
             "Style": r.get("style") or "n/a",
             "Status": r.get("status", ""),
+            "Diagnostics": diagnostics,
             "Score %": r.get("evaluation_score"),
             "Tokens in": usage.get("input_tokens"),
             "Tokens out": usage.get("output_tokens"),

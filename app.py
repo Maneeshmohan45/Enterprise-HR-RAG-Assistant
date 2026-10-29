@@ -205,6 +205,7 @@ hr {margin:.6rem 0 !important;}
 @st.cache_resource(show_spinner="Loading search models (first start only)...")
 def load_pipeline():
     sync_streamlit_secrets()
+    # Cache key v1.1.2: prefix preservation in streaming guard
     from langchain_core.documents import Document
 
     from hr_rag.pipeline import RAGPipeline
